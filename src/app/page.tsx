@@ -142,7 +142,7 @@ export default function Home() {
               <CardContent>
                 <form action={formAction} ref={formRef}>
                   <div className="space-y-6">
-                    <div className="space-y-2">
+                    <div className="space-y-2" suppressHydrationWarning>
                       <Label htmlFor="backendLanguage">Language</Label>
                       <Select
                         name="backendLanguage"
@@ -166,7 +166,7 @@ export default function Home() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2" suppressHydrationWarning>
                       <Label htmlFor="framework">Framework</Label>
                       <Select name="framework" defaultValue={selectedFramework} onValueChange={setSelectedFramework}>
                         <SelectTrigger id="framework">
@@ -185,14 +185,14 @@ export default function Home() {
                     </div>
 
                     <div className="space-y-4">
-                       <div className="flex items-center justify-between rounded-lg border p-3">
+                       <div className="flex items-center justify-between rounded-lg border p-3" suppressHydrationWarning>
                           <div className="space-y-0.5">
                             <Label htmlFor="includeAuthentication">Authentication</Label>
                             <p className="text-sm text-muted-foreground">Include user auth endpoints.</p>
                           </div>
                           <Switch id="includeAuthentication" name="includeAuthentication" />
                         </div>
-                        <div className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="flex items-center justify-between rounded-lg border p-3" suppressHydrationWarning>
                           <div className="space-y-0.5">
                             <Label htmlFor="includeDatabaseConnectivity">Database</Label>
                             <p className="text-sm text-muted-foreground">Include DB connection setup.</p>
@@ -202,7 +202,7 @@ export default function Home() {
                     </div>
                     
                     {dbEnabled && (
-                      <div className="space-y-2 animate-in fade-in">
+                      <div className="space-y-2 animate-in fade-in" suppressHydrationWarning>
                         <Label htmlFor="databaseType">Database Type</Label>
                         <Select name="databaseType" defaultValue={databaseOptions[0]}>
                           <SelectTrigger id="databaseType">
@@ -219,7 +219,7 @@ export default function Home() {
                       </div>
                     )}
                     
-                    <div className="space-y-2">
+                    <div className="space-y-2" suppressHydrationWarning>
                       <Label htmlFor="additionalModules">Additional Modules (Optional)</Label>
                       <Input id="additionalModules" name="additionalModules" placeholder="e.g., cors, dotenv, nodemon" />
                     </div>
