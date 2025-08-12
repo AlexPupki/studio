@@ -77,8 +77,13 @@ export default function Home() {
   const [selectedFramework, setSelectedFramework] = useState(techStacks[Object.keys(techStacks)[0]].frameworks[0]);
   const [dbEnabled, setDbEnabled] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (state.error) {
@@ -114,6 +119,96 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const renderForm = () => (
+    <form action={formAction} ref={formRef}>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="backendLanguage">Language</Label>
+          <Select
+            name="backendLanguage"
+            defaultValue={selectedLanguage}
+            onValueChange={lang => {
+              setSelectedLanguage(lang);
+              setSelectedFramework(techStacks[lang].frameworks[0]);
+              formRef.current?.requestSubmit();
+            }}
+          >
+            <SelectTrigger id="backendLanguage">
+              <SelectValue placeholder="Select a language" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(techStacks).map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="framework">Framework</Label>
+          <Select name="framework" defaultValue={selectedFramework} onValueChange={setSelectedFramework}>
+            <SelectTrigger id="framework">
+              <SelectValue placeholder="Select a framework" />
+            </SelectTrigger>
+            <SelectContent>
+              {techStacks[selectedLanguage]?.frameworks.map(
+                (fw) => (
+                  <SelectItem key={fw} value={fw}>
+                    {fw}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="includeAuthentication">Authentication</Label>
+                <p className="text-sm text-muted-foreground">Include user auth endpoints.</p>
+              </div>
+              <Switch id="includeAuthentication" name="includeAuthentication" />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="includeDatabaseConnectivity">Database</Label>
+                <p className="text-sm text-muted-foreground">Include DB connection setup.</p>
+              </div>
+              <Switch id="includeDatabaseConnectivity" name="includeDatabaseConnectivity" checked={dbEnabled} onCheckedChange={setDbEnabled}/>
+            </div>
+        </div>
+        
+        {dbEnabled && (
+          <div className="space-y-2 animate-in fade-in">
+            <Label htmlFor="databaseType">Database Type</Label>
+            <Select name="databaseType" defaultValue={databaseOptions[0]}>
+              <SelectTrigger id="databaseType">
+                <SelectValue placeholder="Select a database" />
+              </SelectTrigger>
+              <SelectContent>
+                {databaseOptions.map((db) => (
+                  <SelectItem key={db} value={db}>
+                    {db}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        <div className="space-y-2">
+          <Label htmlFor="additionalModules">Additional Modules (Optional)</Label>
+          <Input id="additionalModules" name="additionalModules" placeholder="e.g., cors, dotenv, nodemon" />
+        </div>
+
+      </div>
+    <SubmitButton />
+    </form>
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-10 w-full bg-background/80 backdrop-blur-sm border-b">
@@ -140,93 +235,7 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form action={formAction} ref={formRef}>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="backendLanguage">Language</Label>
-                      <Select
-                        name="backendLanguage"
-                        defaultValue={selectedLanguage}
-                        onValueChange={lang => {
-                          setSelectedLanguage(lang);
-                          setSelectedFramework(techStacks[lang].frameworks[0]);
-                          formRef.current?.requestSubmit();
-                        }}
-                      >
-                        <SelectTrigger id="backendLanguage">
-                          <SelectValue placeholder="Select a language" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.keys(techStacks).map((lang) => (
-                            <SelectItem key={lang} value={lang}>
-                              {lang}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="framework">Framework</Label>
-                      <Select name="framework" defaultValue={selectedFramework} onValueChange={setSelectedFramework}>
-                        <SelectTrigger id="framework">
-                          <SelectValue placeholder="Select a framework" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {techStacks[selectedLanguage]?.frameworks.map(
-                            (fw) => (
-                              <SelectItem key={fw} value={fw}>
-                                {fw}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-4">
-                       <div className="flex items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="includeAuthentication">Authentication</Label>
-                            <p className="text-sm text-muted-foreground">Include user auth endpoints.</p>
-                          </div>
-                          <Switch id="includeAuthentication" name="includeAuthentication" />
-                        </div>
-                        <div className="flex items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="includeDatabaseConnectivity">Database</Label>
-                            <p className="text-sm text-muted-foreground">Include DB connection setup.</p>
-                          </div>
-                          <Switch id="includeDatabaseConnectivity" name="includeDatabaseConnectivity" checked={dbEnabled} onCheckedChange={setDbEnabled}/>
-                        </div>
-                    </div>
-                    
-                    {dbEnabled && (
-                      <div className="space-y-2 animate-in fade-in">
-                        <Label htmlFor="databaseType">Database Type</Label>
-                        <Select name="databaseType" defaultValue={databaseOptions[0]}>
-                          <SelectTrigger id="databaseType">
-                            <SelectValue placeholder="Select a database" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {databaseOptions.map((db) => (
-                              <SelectItem key={db} value={db}>
-                                {db}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="additionalModules">Additional Modules (Optional)</Label>
-                      <Input id="additionalModules" name="additionalModules" placeholder="e.g., cors, dotenv, nodemon" />
-                    </div>
-
-                  </div>
-                <SubmitButton />
-                </form>
+                {mounted ? renderForm() : <Skeleton className="h-[420px] w-full" />}
               </CardContent>
             </Card>
           </div>
