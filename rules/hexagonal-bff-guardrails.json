@@ -1,0 +1,75 @@
+{
+    "name": "HexagonalCleanArchitectureWithBFF",
+    "purpose": "Жёстко отделить серверные зависимости (GenKit, OpenTelemetry, БД-SDK и т. д.) от браузерного кода, чтобы избежать ошибок «Module not found» и раздувания client-bundle. Используются суффиксы .server.ts и контрактные интерфейсы.",
+    "layers": {
+      "contracts": {
+        "path": "packages/contracts",
+        "description": "Общие TypeScript-интерфейсы и типы данных (DTO). Изоморфны, безопасны для импорта клиентом и сервером.",
+        "allowedImports": []
+      },
+      "domain": {
+        "path": "packages/domain",
+        "description": "Чистая бизнес-логика, правила. Изоморфна, без прямых зависимостей на Node-модули.",
+        "allowedImports": ["@shop/contracts"]
+      },
+      "application": {
+        "path": "packages/application",
+        "description": "Use-cases и абстрактные «порты» к инфраструктуре.",
+        "allowedImports": ["@shop/domain"]
+      },
+      "infrastructure": {
+        "path": "packages/server",
+        "description": "Адаптеры к внешним сервисам: GenKit, OpenTelemetry, SQL/NoSQL и пр. Только Node.",
+        "allowedImports": ["@shop/domain", "@shop/application", "genkit", "@opentelemetry/*", "fs", "child_process", "firebase-admin", "stripe"]
+      },
+      "bff": {
+        "path": "packages/server/src/bff",
+        "description": "Next.js API-роуты или Server Actions, которые вызывают слой Application. Используют суффикс .server.ts для изоляции.",
+        "allowedImports": ["@shop/application", "@shop/server", "@shop/contracts"]
+      },
+      "ui": {
+        "path": "packages/web",
+        "description": "Клиентские React-компоненты. «Разговаривают» с BFF через fetch или Server Actions. Не могут импортировать .server.ts файлы.",
+        "allowedImports": ["@shop/domain", "@shop/contracts"]
+      }
+    },
+    "lint": {
+      "tool": "eslint",
+      "rule": "no-restricted-imports",
+      "config": {
+        "patterns": [
+          {
+            "group": ["@shop/server", "@opentelemetry/*", "genkit", "fs", "child_process", "firebase-admin", "stripe", "*.server.ts"],
+            "message": "Серверный модуль или файл .server.ts импортирован в клиентском коде!",
+            "contexts": ["packages/web/**"]
+          }
+        ]
+      }
+    },
+    "packageExports": {
+      "@shop/server": {
+        "node": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "@shop/domain": {
+        "browser": "./dist/browser.js",
+        "default": "./dist/index.js"
+      }
+    },
+    "buildGuards": [
+      {
+        "name": "check-client-bundle",
+        "command": "grep -R \"@opentelemetry\" .next/static || true",
+        "failIfFound": true,
+        "runOn": "postbuild"
+      }
+    ],
+    "checklistBeforeStart": [
+      "Создать монорепо (pnpm / Turbo) с workspaces domain, application, server, web",
+      "Подключить ESLint-правило no-restricted-imports согласно конфигу",
+      "Настроить TypeScript, чтобы он запрещал импорт .server.ts в клиентских модулях",
+      "Добавить build-guard, проверяющий отсутствие OTEL-строк в client-бандлах",
+      "Документировать правило: вся новая интеграция идёт в packages/server"
+    ]
+  }
+  

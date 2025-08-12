@@ -1,0 +1,37 @@
+
+{
+    "name": "Dependency Management Strategy",
+    "purpose": "To clearly separate production dependencies from development dependencies, optimizing build sizes, improving security, and clarifying the project's structure.",
+    "sections": [
+      {
+        "name": "Production Dependencies (`dependencies`)",
+        "description": "These are packages essential for the application to run in a production environment. They are bundled into the final build or are required by the server at runtime.",
+        "rule": "A package belongs here if and only if it is imported and used by application code that runs on the client or server after deployment. This includes UI libraries, server-side utilities, and runtime frameworks.",
+        "examples": [
+          "`react`, `next` (Core framework)",
+          "`lucide-react`, `@radix-ui/*` (UI components)",
+          "`zod` (Runtime validation)",
+          "`@aws-sdk/client-s3` (Server-side SDKs used at runtime)",
+          "`genkit`, `@genkit-ai/*` (Core AI logic on the server)"
+        ],
+        "rationale": "Incorrectly placing a dev package here bloats the production build. Incorrectly placing a production package in `devDependencies` will cause the application to crash in production (`Module not found`)."
+      },
+      {
+        "name": "Development Dependencies (`devDependencies`)",
+        "description": "These are packages used only during the development and build process. They are not included in the final production build and are not installed when running `npm install --production`.",
+        "rule": "A package belongs here if it is used for linting, testing, bundling, providing TypeScript types, or any other development-time task. It should never be imported by runtime application code.",
+        "examples": [
+          "`typescript` (The TypeScript compiler itself)",
+          "`@types/*` (Type definitions for libraries)",
+          "`eslint`, `prettier` (Linters and formatters)",
+          "`tailwindcss`, `postcss` (CSS build tools)",
+          "`jest`, `@testing-library/react` (Testing frameworks)"
+        ],
+        "rationale": "Keeping these dependencies separate ensures that the production environment is as lean and secure as possible, reducing the attack surface and speeding up deployment."
+      }
+    ],
+    "ciCd": {
+      "recommendation": "In your CI/CD pipeline, use `npm ci` or `pnpm install --frozen-lockfile` for installing all dependencies for build and test stages. For creating the final production artifact, use `npm install --production` (or equivalent) to install only the packages from the `dependencies` section."
+    }
+  }
+  

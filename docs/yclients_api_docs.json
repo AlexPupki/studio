@@ -1,0 +1,93 @@
+{
+  "project": "YCLIENTS API Integration",
+  "description": "Интеграция платформы Grand Tour Sochi с системой онлайн-записи и CRM YCLIENTS для автоматизации бронирований, расписаний и клиентской базы.",
+  "models": {
+    "api_style": "REST",
+    "base_url": "https://api.yclients.com/api/v1",
+    "version": "v1",
+    "context_tokens": null,
+    "description": "YCLIENTS API предоставляет доступ к управлению компаниями, филиалами, услугами, сотрудниками, клиентами, записями, оплатами, программами лояльности и webhooks."
+  },
+  "auth": {
+    "flow": "Partner Token -> User Token -> Bearer",
+    "partner_token_usage": "Используется для получения user_token. Далее для всех API-запросов используется только user_token.",
+    "headers": {
+      "Authorization": "Bearer {user_token}",
+      "Accept": "application/vnd.yclients.v2+json",
+      "Content-Type": "application/json"
+    },
+    "docs": "https://support.yclients.com/67-68-199--dostup-k-api/"
+  },
+  "entities": {
+    "Company": "Компания или бренд (Grand Tour Sochi)",
+    "Branch": "Филиал или локация (Сочи, Дагомыс, Красная Поляна)",
+    "ServiceCategory": "Категория услуг (вертолёты, багги, катера, Slingshot, гидроциклы)",
+    "Service": "Конкретная услуга с ценой и длительностью (например: 'R44 30 минут', 'Катер 252S 2 часа')",
+    "Staff": "Сотрудник/ресурс (пилот, капитан, инструктор)",
+    "Client": "Клиент (гость, участник клуба, корпоративный заказчик)",
+    "Record": "Запись/бронирование",
+    "Good": "Доп.товар/услуга (кейтеринг, фото/видео)",
+    "Payment": "Оплата или депозит",
+    "Loyalty": "Программа лояльности (скидки, бонусы, клубные статусы)"
+  },
+  "core_endpoints": {
+    "companies": "GET /companies — список компаний",
+    "branches": "GET /branches/{company_id} — список филиалов",
+    "services": "GET /services/{company_id}/{branch_id} — список услуг",
+    "staff": "GET /staff/{company_id}/{branch_id} — список сотрудников",
+    "clients": "GET/POST/PATCH /clients/{company_id} — управление клиентами",
+    "records": "GET/POST/PATCH/DELETE /records/{company_id}/{branch_id} — управление записями",
+    "schedule": "GET /schedule/{company_id}/{branch_id} — получение расписания",
+    "cash": "POST /cash/{company_id}/{branch_id} — операции с оплатами",
+    "loyalty": "GET /loyalty/{company_id} — данные по лояльности"
+  },
+  "js_typescript_example": "import fetch from 'node-fetch';\n\nconst userToken = process.env.YCLIENTS_USER_TOKEN;\nconst companyId = 123456;\nconst branchId = 654321;\n\nasync function getServices() {\n  const res = await fetch(`https://api.yclients.com/api/v1/services/${companyId}/${branchId}`, {\n    headers: {\n      Authorization: `Bearer ${userToken}`,\n      Accept: 'application/vnd.yclients.v2+json'\n    }\n  });\n  return res.json();\n}\n\ngetServices().then(console.log);",
+  "python_example": "import requests\n\nUSER_TOKEN = 'your_user_token'\nCOMPANY_ID = 123456\nBRANCH_ID = 654321\n\nurl = f'https://api.yclients.com/api/v1/services/{COMPANY_ID}/{BRANCH_ID}'\nheaders = {\n    'Authorization': f'Bearer {USER_TOKEN}',\n    'Accept': 'application/vnd.yclients.v2+json'\n}\n\nresponse = requests.get(url, headers=headers)\nprint(response.json())",
+  "webhooks": {
+    "events": [
+      "record.created",
+      "record.updated",
+      "record.deleted",
+      "client.created",
+      "payment.succeeded",
+      "payment.refunded"
+    ],
+    "delivery": {
+      "url": "https://api.grandtoursystem.com/integrations/yclients/webhook",
+      "auth": "HMAC-SHA256",
+      "retry_policy": "exponential backoff, max_attempts=6"
+    },
+    "docs": "https://support.yclients.com/67-69--dokumentaciya/"
+  },
+  "use_cases": {
+    "create_booking": {
+      "steps": [
+        "Получить список услуг и сотрудников по филиалу",
+        "Выбрать доступный слот через /schedule",
+        "Создать клиента через POST /clients, если его нет",
+        "Создать запись через POST /records",
+        "В случае предоплаты — провести оплату через /cash"
+      ]
+    },
+    "reschedule_booking": {
+      "steps": [
+        "Получить запись через GET /records/{id}",
+        "Проверить доступность нового времени",
+        "Изменить запись через PATCH /records/{id}"
+      ]
+    },
+    "cancel_booking": {
+      "steps": [
+        "Удалить запись через DELETE /records/{id}",
+        "При необходимости вернуть предоплату через /cash/refund"
+      ]
+    }
+  },
+  "resources": [
+    "https://support.yclients.com/",
+    "https://support.yclients.com/67-68-199--dostup-k-api/",
+    "https://yclientsru.docs.apiary.io/",
+    "https://yclientsen.docs.apiary.io/",
+    "https://support.yclients.com/67-69--dokumentaciya/"
+  ]
+}
