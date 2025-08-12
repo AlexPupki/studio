@@ -1,0 +1,4 @@
+Role/Subject,Resource,Actions,Notes
+backend-sa,gcs://gts-mvp-media-euw4/uploads/*,storage.objects.create,Signed URL (write)
+backend-sa,gcs://gts-mvp-media-euw4/media/*,storage.objects.get,Signed URL (read)
+ci-cd,project,iam.serviceAccountTokenCreator,for URL signing via IAMCredentials

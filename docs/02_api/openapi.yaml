@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: GTS Presign API
+  version: 1.0.0
+  description: API для получения временных подписанных ссылок (Signed URLs) для безопасной загрузки и скачивания файлов в Google Cloud Storage.
+paths:
+  /sign-upload:
+    post:
+      summary: Получить Signed URL для загрузки файла
+      operationId: getUploadUrl
+      tags:
+        - Media
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contentType:
+                  type: string
+                  description: "MIME-тип файла (e.g., 'image/jpeg')."
+                ext:
+                  type: string
+                  description: "Расширение файла (e.g., '.jpg')."
+                prefix:
+                  type: string
+                  description: "Префикс для ключа в GCS (e.g., 'uploads/tmp')."
+                  default: "uploads"
+              required:
+                - contentType
+      responses:
+        "200":
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: Подписанный URL для PUT-запроса.
+                  key:
+                    type: string
+                    description: Ключ объекта в GCS.
+        "400":
+          description: Неверный запрос
+        "500":
+          description: Внутренняя ошибка сервера
+  /sign-download:
+    get:
+      summary: Получить Signed URL для скачивания файла
+      operationId: getDownloadUrl
+      tags:
+        - Media
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Ключ объекта в GCS.
+      responses:
+        "200":
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: Подписанный URL для GET-запроса.
+        "400":
+          description: Неверный запрос (отсутствует ключ)
+        "404":
+          description: Файл не найден
+        "500":
+          description: Внутренняя ошибка сервера
