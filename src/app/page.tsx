@@ -140,12 +140,11 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form action={formAction} ref={formRef} suppressHydrationWarning>
+                <form action={formAction} ref={formRef}>
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="backendLanguage">Language</Label>
                       <Select
-                        suppressHydrationWarning
                         name="backendLanguage"
                         defaultValue={selectedLanguage}
                         onValueChange={lang => {
@@ -169,7 +168,7 @@ export default function Home() {
 
                     <div className="space-y-2">
                       <Label htmlFor="framework">Framework</Label>
-                      <Select suppressHydrationWarning name="framework" defaultValue={selectedFramework} onValueChange={setSelectedFramework}>
+                      <Select name="framework" defaultValue={selectedFramework} onValueChange={setSelectedFramework}>
                         <SelectTrigger id="framework">
                           <SelectValue placeholder="Select a framework" />
                         </SelectTrigger>
@@ -191,21 +190,21 @@ export default function Home() {
                             <Label htmlFor="includeAuthentication">Authentication</Label>
                             <p className="text-sm text-muted-foreground">Include user auth endpoints.</p>
                           </div>
-                          <Switch suppressHydrationWarning id="includeAuthentication" name="includeAuthentication" />
+                          <Switch id="includeAuthentication" name="includeAuthentication" />
                         </div>
                         <div className="flex items-center justify-between rounded-lg border p-3">
                           <div className="space-y-0.5">
                             <Label htmlFor="includeDatabaseConnectivity">Database</Label>
                             <p className="text-sm text-muted-foreground">Include DB connection setup.</p>
                           </div>
-                          <Switch suppressHydrationWarning id="includeDatabaseConnectivity" name="includeDatabaseConnectivity" checked={dbEnabled} onCheckedChange={setDbEnabled}/>
+                          <Switch id="includeDatabaseConnectivity" name="includeDatabaseConnectivity" checked={dbEnabled} onCheckedChange={setDbEnabled}/>
                         </div>
                     </div>
                     
                     {dbEnabled && (
                       <div className="space-y-2 animate-in fade-in">
                         <Label htmlFor="databaseType">Database Type</Label>
-                        <Select suppressHydrationWarning name="databaseType" defaultValue={databaseOptions[0]}>
+                        <Select name="databaseType" defaultValue={databaseOptions[0]}>
                           <SelectTrigger id="databaseType">
                             <SelectValue placeholder="Select a database" />
                           </SelectTrigger>
@@ -222,7 +221,7 @@ export default function Home() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="additionalModules">Additional Modules (Optional)</Label>
-                      <Input suppressHydrationWarning id="additionalModules" name="additionalModules" placeholder="e.g., cors, dotenv, nodemon" />
+                      <Input id="additionalModules" name="additionalModules" placeholder="e.g., cors, dotenv, nodemon" />
                     </div>
 
                   </div>
