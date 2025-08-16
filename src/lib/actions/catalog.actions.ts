@@ -13,7 +13,7 @@ import { createDbService } from '../database/db.service.server';
 
 const actionError = { _server: ['Произошла внутренняя ошибка. Попробуйте позже.'] };
 
-// --- Get Services ---
+// --- Get Services from YCLIENTS ---
 
 const GetServicesSchema = z.object({
   branchId: z.number().int().positive('Branch ID должен быть положительным числом'),
@@ -36,7 +36,7 @@ export async function getServicesAction(params: z.infer<typeof GetServicesSchema
   }
 }
 
-// --- Get Available Slots ---
+// --- Get Available Slots from YCLIENTS ---
 
 const GetAvailableSlotsSchema = z.object({
     branchId: z.number().int(),
@@ -63,7 +63,7 @@ export async function getAvailableSlotsAction(params: z.infer<typeof GetAvailabl
 }
 
 
-// --- Create Booking Request ---
+// --- Create Booking Request (Orchestrator) ---
 
 const CreateBookingRequestSchema = z.object({
     branchId: z.number().int(),
@@ -130,6 +130,37 @@ export async function createBookingRequestAction(params: z.infer<typeof CreateBo
 
     } catch (err) {
         console.error('Ошибка в createBookingRequestAction:', err);
+        return { data: null, error: actionError };
+    }
+}
+
+
+// --- Get Content Pages from Database ---
+
+export async function getAllContentPagesAction() {
+    try {
+        const dbService = await createDbService();
+        const pages = await dbService.getAllContentPages();
+        return { data: pages, error: null };
+    } catch (err) {
+        console.error('Ошибка в getAllContentPagesAction:', err);
+        return { data: null, error: actionError };
+    }
+}
+
+export async function getContentPageBySlugAction(slug: string) {
+    if (!slug) {
+        return { data: null, error: { _server: ['Slug is required.'] } };
+    }
+    try {
+        const dbService = await createDbService();
+        const page = await dbService.findContentPageBySlug(slug);
+        if (!page) {
+             return { data: null, error: { _server: ['Page not found.'] } };
+        }
+        return { data: page, error: null };
+    } catch (err) {
+        console.error(`Ошибка в getContentPageBySlugAction (slug: ${slug}):`, err);
         return { data: null, error: actionError };
     }
 }
