@@ -91,11 +91,13 @@ export interface IYclientsService {
    * Создает новую запись (бронирование).
    * @param params - Данные для создания бронирования.
    * @returns Промис с созданным объектом записи.
+   * @description В MVP не используется напрямую с фронтенда. Зарезервировано для AI-ассистента.
    */
   createRecord(params: CreateRecordParams): Promise<YcRecord>;
 
   // В будущем здесь можно будет добавить другие методы:
   // getAvailableSlots(params: ...): Promise<...>;
-  // updateRecord(params: ...): Promise<YcRecord>;
-  // cancelRecord(params: ...): Promise<void>;
+  // findClientByPhone(phone: string): Promise<YcClient | null>;
+  // createClient(clientData: ...): Promise<YcClient>;
+  // updateClientComment(clientId: number, comment: string): Promise<void>;
 }
