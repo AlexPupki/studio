@@ -144,6 +144,10 @@ export interface IYclientsService {
    */
   createRecord(params: CreateRecordParams): Promise<YcRecord>;
 
-  // В будущем здесь можно будет добавить другие методы:
-  // updateClientComment(clientId: number, comment: string): Promise<void>;
+  /**
+   * Получает историю записей (бронирований) для клиента.
+   * @param clientId - ID клиента в YCLIENTS.
+   * @returns Промис с массивом записей.
+   */
+  getClientRecords(clientId: number): Promise<YcRecord[]>;
 }

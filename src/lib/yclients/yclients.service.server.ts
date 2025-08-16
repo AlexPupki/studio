@@ -166,6 +166,14 @@ export class YclientsService implements IYclientsService {
       body: JSON.stringify(body),
     });
   }
+
+  /**
+   * @inheritdoc
+   */
+  async getClientRecords(clientId: number): Promise<YcRecord[]> {
+    const endpoint = `/records/${this.companyId}?client_id=${clientId}`;
+    return this.request<YcRecord[]>(endpoint, { method: 'GET' });
+  }
 }
 
 
