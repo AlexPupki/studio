@@ -60,6 +60,25 @@ export interface GetServicesParams {
 }
 
 /**
+ * Входные данные для получения свободных слотов.
+ */
+export interface GetAvailableSlotsParams {
+    branchId: number;
+    staffId: number;
+    serviceId: number;
+    date: string; // YYYY-MM-DD
+}
+
+/**
+ * Данные для создания нового клиента.
+ */
+export interface CreateClientParams {
+    name: string;
+    phone: string;
+    email?: string;
+}
+
+/**
  * Входные данные для создания бронирования.
  */
 export interface CreateRecordParams {
@@ -88,6 +107,36 @@ export interface IYclientsService {
   getServices(params: GetServicesParams): Promise<YcService[]>;
 
   /**
+   * Получает список доступных временных слотов для сотрудника и услуги на конкретную дату.
+   * @param params - Параметры для запроса.
+   * @returns Промис с массивом строк времени (e.g., "10:00", "11:30").
+   */
+  getAvailableSlots(params: GetAvailableSlotsParams): Promise<string[]>;
+
+  /**
+   * Ищет клиента в YCLIENTS по номеру телефона.
+   * @param phone - Номер телефона в международном формате.
+   * @returns Промис с объектом клиента или null, если клиент не найден.
+   */
+  findClientByPhone(phone: string): Promise<YcClient | null>;
+  
+  /**
+   * Создает нового клиента в YCLIENTS.
+   * @param clientData - Данные нового клиента.
+   * @returns Промис с созданным объектом клиента.
+   */
+  createClient(clientData: CreateClientParams): Promise<YcClient>;
+
+  /**
+   * Обновляет комментарий для существующего клиента.
+   * @param clientId - ID клиента в YCLIENTS.
+   * @param comment - Новый текст комментария для добавления.
+   * @returns Промис, который разрешается после успешного обновления.
+   */
+  updateClientComment(clientId: number, comment: string): Promise<void>;
+
+
+  /**
    * Создает новую запись (бронирование).
    * @param params - Данные для создания бронирования.
    * @returns Промис с созданным объектом записи.
@@ -96,8 +145,5 @@ export interface IYclientsService {
   createRecord(params: CreateRecordParams): Promise<YcRecord>;
 
   // В будущем здесь можно будет добавить другие методы:
-  // getAvailableSlots(params: ...): Promise<...>;
-  // findClientByPhone(phone: string): Promise<YcClient | null>;
-  // createClient(clientData: ...): Promise<YcClient>;
   // updateClientComment(clientId: number, comment: string): Promise<void>;
 }
