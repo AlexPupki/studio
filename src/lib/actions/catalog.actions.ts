@@ -10,6 +10,7 @@ import { createYclientsService } from '../yclients/yclients.service.server';
 import { z } from 'zod';
 import { YcClient } from '../yclients/yclients.contracts';
 import { createDbService } from '../database/db.service.server';
+import { CreateCommentParams } from '../database/db.contracts';
 
 const actionError = { _server: ['Произошла внутренняя ошибка. Попробуйте позже.'] };
 
@@ -161,6 +162,80 @@ export async function getContentPageBySlugAction(slug: string) {
         return { data: page, error: null };
     } catch (err) {
         console.error(`Ошибка в getContentPageBySlugAction (slug: ${slug}):`, err);
+        return { data: null, error: actionError };
+    }
+}
+
+// --- Blog / Articles Actions ---
+
+export async function getAllArticlesAction() {
+    try {
+        const dbService = await createDbService();
+        const articles = await dbService.getAllArticles();
+        return { data: articles, error: null };
+    } catch (err) {
+        console.error('Ошибка в getAllArticlesAction:', err);
+        return { data: null, error: actionError };
+    }
+}
+
+export async function getArticleBySlugAction(slug: string) {
+    if (!slug) {
+        return { data: null, error: { _server: ['Slug is required.'] } };
+    }
+    try {
+        const dbService = await createDbService();
+        const article = await dbService.findArticleBySlug(slug);
+        if (!article) {
+             return { data: null, error: { _server: ['Article not found.'] } };
+        }
+        return { data: article, error: null };
+    } catch (err) {
+        console.error(`Ошибка в getArticleBySlugAction (slug: ${slug}):`, err);
+        return { data: null, error: actionError };
+    }
+}
+
+// --- Comments Actions ---
+
+export async function getCommentsByArticleIdAction(articleId: string) {
+    if (!articleId) {
+        return { data: null, error: { _server: ['Article ID is required.'] } };
+    }
+    try {
+        const dbService = await createDbService();
+        // Получаем только одобренные комментарии для публичной части
+        const comments = await dbService.getCommentsByArticleId(articleId, true);
+        return { data: comments, error: null };
+    } catch (err)
+ {
+        console.error(`Ошибка в getCommentsByArticleIdAction (articleId: ${articleId}):`, err);
+        return { data: null, error: actionError };
+    }
+}
+
+const CreateCommentSchema = z.object({
+    articleId: z.string().min(1, 'Article ID is required'),
+    authorName: z.string().min(2, 'Имя обязательно для заполнения'),
+    text: z.string().min(10, 'Текст комментария должен быть не менее 10 символов'),
+});
+
+
+export async function createCommentAction(params: CreateCommentParams) {
+    try {
+        const validation = CreateCommentSchema.safeParse(params);
+        if (!validation.success) {
+            return { data: null, error: validation.error.flatten().fieldErrors };
+        }
+
+        const dbService = await createDbService();
+        const newComment = await dbService.createComment(validation.data);
+
+        // Возвращаем успешный результат, но сам комментарий появится после модерации
+        return { data: { success: true, commentId: newComment.id }, error: null };
+
+    } catch (err) {
+        console.error('Ошибка в createCommentAction:', err);
         return { data: null, error: actionError };
     }
 }
