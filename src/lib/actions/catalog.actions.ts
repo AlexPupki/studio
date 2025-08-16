@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { YcClient } from '../yclients/yclients.contracts';
 import { createDbService } from '../database/db.service.server';
 import { CreateCommentParams } from '../database/db.contracts';
+import { createAnalyticsService } from '../analytics/analytics.service.server';
 
 const actionError = { _server: ['Произошла внутренняя ошибка. Попробуйте позже.'] };
 
@@ -86,11 +87,12 @@ export async function createBookingRequestAction(params: z.infer<typeof CreateBo
             return { data: null, error: validation.error.flatten().fieldErrors };
         }
         
-        const { client: clientData, serviceTitle, datetime } = validation.data;
+        const { client: clientData, serviceTitle, datetime, serviceId, branchId } = validation.data;
         
-        // 1. Получаем оба сервиса через фабрики
+        // 1. Получаем все сервисы через фабрики
         const yclientsService = await createYclientsService();
         const dbService = await createDbService();
+        const analytics = await createAnalyticsService();
 
         // 2. Найти или создать клиента в YCLIENTS
         let ycClient: YcClient | null = await yclientsService.findClientByPhone(clientData.phone);
@@ -124,8 +126,17 @@ export async function createBookingRequestAction(params: z.infer<typeof CreateBo
                 status: 'Bronze', // Статус по умолчанию для новых
                 points: 0,
             });
+            // Отслеживаем только первую регистрацию
+            analytics.track('new_club_member_registered', { clubMemberId: clubMember.id, source: 'booking_form' });
         }
-        // В будущем здесь может быть логика обновления данных, если они изменились
+
+        // 5. Отправляем событие аналитики о новой заявке
+        analytics.track('booking_request_created', {
+            yclientsClientId: ycClient.id,
+            clubMemberId: clubMember.id,
+            serviceId: serviceId,
+            branchId: branchId,
+        });
 
         return { data: { success: true, yclientsClientId: ycClient.id, clubMemberId: clubMember.id }, error: null };
 
@@ -230,6 +241,15 @@ export async function createCommentAction(params: CreateCommentParams) {
 
         const dbService = await createDbService();
         const newComment = await dbService.createComment(validation.data);
+        
+        // Отправляем событие аналитики
+        const analytics = await createAnalyticsService();
+        analytics.track('article_comment_submitted', { 
+            articleId: newComment.articleId,
+            commentId: newComment.id,
+            authorName: newComment.authorName
+        });
+
 
         // Возвращаем успешный результат, но сам комментарий появится после модерации
         return { data: { success: true, commentId: newComment.id }, error: null };

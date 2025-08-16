@@ -10,6 +10,7 @@ import { createYclientsService } from '../yclients/yclients.service.server';
 import { createDbService } from '../database/db.service.server';
 import { ClubMember } from '../database/db.contracts';
 import { YcRecord } from '../yclients/yclients.contracts';
+import { createAnalyticsService } from '../analytics/analytics.service.server';
 
 const actionError = { _server: ['Произошла внутренняя ошибка. Попробуйте позже.'] };
 
@@ -38,9 +39,10 @@ export async function getAccountDetailsAction(
 
     const { phone } = validation.data;
 
-    // 1. Инициализируем оба сервиса
+    // 1. Инициализируем сервисы
     const dbService = await createDbService();
     const yclientsService = await createYclientsService();
+    const analytics = await createAnalyticsService();
 
     // 2. Находим пользователя в нашей базе данных
     const clubMember = await dbService.findMemberByPhone(phone);
@@ -56,6 +58,9 @@ export async function getAccountDetailsAction(
       clubMember,
       records,
     };
+    
+    // 5. Отправляем событие аналитики
+    analytics.track('account_details_viewed', { clubMemberId: clubMember.id, phone });
 
     return { data: accountDetails, error: null };
 
