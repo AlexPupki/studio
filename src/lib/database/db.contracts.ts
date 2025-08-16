@@ -27,6 +27,28 @@ export interface ClubMember {
   updatedAt: Date;
 }
 
+/**
+ * Описывает контентную страницу для услуги или техники.
+ */
+export interface ContentPage {
+    id: string; // Внутренний ID документа
+    slug: string; // Уникальный идентификатор для URL
+    title: string;
+    shortDescription?: string;
+    mainImageUrl?: string;
+    gallery?: string[];
+    fullDescriptionHtml?: string;
+    characteristics?: { label: string; value: string }[];
+    routeDescriptionHtml?: string;
+    conditionsHtml?: string;
+    // Связь с операционной сущностью в YCLIENTS
+    yclientsServiceId: number; 
+    published: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+
 // --- Service Interface ---
 
 /**
@@ -40,38 +62,33 @@ export type CreateMemberParams = Omit<ClubMember, 'id' | 'createdAt' | 'updatedA
  */
 export type UpdateMemberParams = Partial<Omit<ClubMember, 'id' | 'createdAt'>>;
 
+/**
+ * Параметры для создания новой контентной страницы.
+ */
+export type CreateContentPageParams = Omit<ContentPage, 'id' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * Параметры для обновления контентной страницы.
+ */
+export type UpdateContentPageParams = Partial<CreateContentPageParams>;
+
 
 /**
  * Интерфейс сервиса для работы с базой данных.
  * Определяет все доступные операции, не раскрывая детали их реализации (Firestore, SQL и т.д.).
  */
 export interface IDatabaseService {
-  /**
-   * Находит члена клуба по номеру телефона.
-   * @param phone - Номер телефона.
-   * @returns Промис с объектом ClubMember или null, если не найден.
-   */
+  // --- Club Members ---
   findMemberByPhone(phone: string): Promise<ClubMember | null>;
-  
-  /**
-   * Находит члена клуба по его ID в YCLIENTS.
-   * @param yclientsId - ID клиента в YCLIENTS.
-   * @returns Промис с объектом ClubMember или null, если не найден.
-   */
   findMemberByYclientsId(yclientsId: number): Promise<ClubMember | null>;
-
-  /**
-   * Создает нового члена клуба.
-   * @param params - Данные для создания.
-   * @returns Промис с созданным объектом ClubMember.
-   */
   createMember(params: CreateMemberParams): Promise<ClubMember>;
-
-  /**
-   * Обновляет данные существующего члена клуба.
-   * @param id - Внутренний ID члена клуба.
-   * @param params - Поля для обновления.
-   * @returns Промис с обновленным объектом ClubMember.
-   */
   updateMember(id: string, params: UpdateMemberParams): Promise<ClubMember>;
+  
+  // --- Content (CMS) ---
+  findContentPageBySlug(slug: string): Promise<ContentPage | null>;
+  findContentPageById(id: string): Promise<ContentPage | null>;
+  getAllContentPages(): Promise<ContentPage[]>;
+  createContentPage(params: CreateContentPageParams): Promise<ContentPage>;
+  updateContentPage(id: string, params: UpdateContentPageParams): Promise<ContentPage>;
+  deleteContentPage(id: string): Promise<void>;
 }

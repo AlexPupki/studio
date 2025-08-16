@@ -1,6 +1,14 @@
 'use server';
 
-import { ClubMember, CreateMemberParams, IDatabaseService, UpdateMemberParams } from "./db.contracts";
+import { 
+    ClubMember, 
+    ContentPage, 
+    CreateContentPageParams, 
+    CreateMemberParams, 
+    IDatabaseService, 
+    UpdateContentPageParams, 
+    UpdateMemberParams 
+} from "./db.contracts";
 
 /**
  * @fileoverview Этот файл содержит фабрику для создания сервиса базы данных.
@@ -18,6 +26,8 @@ import { ClubMember, CreateMemberParams, IDatabaseService, UpdateMemberParams } 
  * во время разработки.
  */
 class MockDatabaseService implements IDatabaseService {
+    // --- Club Members ---
+
     async findMemberByPhone(phone: string): Promise<ClubMember | null> {
         console.log(`[MockDB] Поиск пользователя по телефону: ${phone}`);
         return null; // Всегда возвращаем null, пока нет реальной БД
@@ -31,7 +41,7 @@ class MockDatabaseService implements IDatabaseService {
     async createMember(params: CreateMemberParams): Promise<ClubMember> {
         console.log(`[MockDB] Создание пользователя:`, params);
         const newMember: ClubMember = {
-            id: `mock_${Date.now()}`,
+            id: `mock_user_${Date.now()}`,
             createdAt: new Date(),
             updatedAt: new Date(),
             ...params,
@@ -53,7 +63,54 @@ class MockDatabaseService implements IDatabaseService {
             createdAt: new Date(),
             updatedAt: new Date(),
             ...params,
+        } as ClubMember;
+    }
+
+    // --- Content (CMS) ---
+
+    async findContentPageBySlug(slug: string): Promise<ContentPage | null> {
+        console.log(`[MockDB] Поиск страницы по slug: ${slug}`);
+        return null;
+    }
+
+    async findContentPageById(id: string): Promise<ContentPage | null> {
+        console.log(`[MockDB] Поиск страницы по ID: ${id}`);
+        return null;
+    }
+
+    async getAllContentPages(): Promise<ContentPage[]> {
+        console.log(`[MockDB] Получение всех страниц`);
+        return [];
+    }
+
+    async createContentPage(params: CreateContentPageParams): Promise<ContentPage> {
+        console.log(`[MockDB] Создание страницы:`, params);
+        const newPage: ContentPage = {
+            id: `mock_page_${Date.now()}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...params,
         };
+        return newPage;
+    }
+
+    async updateContentPage(id: string, params: UpdateContentPageParams): Promise<ContentPage> {
+        console.log(`[MockDB] Обновление страницы ${id}:`, params);
+        return {
+            id,
+            slug: 'mock-slug',
+            title: 'Mock Title',
+            yclientsServiceId: 0,
+            published: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...params,
+        } as ContentPage;
+    }
+
+    async deleteContentPage(id: string): Promise<void> {
+        console.log(`[MockDB] Удаление страницы ${id}`);
+        return Promise.resolve();
     }
 }
 
