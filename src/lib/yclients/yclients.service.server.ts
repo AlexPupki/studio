@@ -8,9 +8,12 @@
  */
 
 import type {
+  CreateClientParams,
   CreateRecordParams,
+  GetAvailableSlotsParams,
   GetServicesParams,
   IYclientsService,
+  YcClient,
   YcRecord,
   YcService,
 } from './yclients.contracts';
@@ -88,6 +91,52 @@ export class YclientsService implements IYclientsService {
   async getServices(params: GetServicesParams): Promise<YcService[]> {
     const endpoint = `/services/${this.companyId}/${params.branchId}`;
     return this.request<YcService[]>(endpoint, { method: 'GET' });
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async getAvailableSlots(params: GetAvailableSlotsParams): Promise<string[]> {
+    const { branchId, staffId, serviceId, date } = params;
+    // YCLIENTS API для расписания требует массив ID услуг
+    const serviceIds = [serviceId];
+    const endpoint = `/schedule/${this.companyId}/${branchId}/${staffId}/${date}?service_ids[]=${serviceIds.join(',')}`;
+    // Ответ API может содержать много информации, нам нужны только доступные времена
+    const scheduleResponse = await this.request<{ booking_times: string[] }>(endpoint, { method: 'GET' });
+    return scheduleResponse.booking_times || [];
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async findClientByPhone(phone: string): Promise<YcClient | null> {
+    const endpoint = `/clients/${this.companyId}?phone=${encodeURIComponent(phone)}`;
+    const clients = await this.request<YcClient[]>(endpoint, { method: 'GET' });
+    return clients.length > 0 ? clients[0] : null;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async createClient(clientData: CreateClientParams): Promise<YcClient> {
+    const endpoint = `/clients/${this.companyId}`;
+    return this.request<YcClient>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(clientData),
+    });
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async updateClientComment(clientId: number, comment: string): Promise<void> {
+    const endpoint = `/clients/${this.companyId}/${clientId}`;
+    // В YCLIENTS комментарий — это часть общего объекта клиента. 
+    // Мы отправляем только поле comment, чтобы обновить только его.
+    await this.request(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({ comment }),
+    });
   }
 
   /**
