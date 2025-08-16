@@ -2,11 +2,9 @@
 
 /**
  * @fileoverview Этот файл содержит конкретную реализацию (адаптер)
- * для взаимодействия с API YCLIENTS. Он инкапсулирует всю логику
- * HTTP-запросов, аутентификации и обработки ответов.
- *
- * Придерживается принципов гексагональной архитектуры, реализуя
- * интерфейс IYclientsService.
+ * для взаимодействия с API YCLIENTS и фабрику для его создания. 
+ * Он инкапсулирует всю логику HTTP-запросов, аутентификации и 
+ * обработки ответов, следуя принципам гексагональной архитектуры.
  */
 
 import type {
@@ -119,4 +117,43 @@ export class YclientsService implements IYclientsService {
       body: JSON.stringify(body),
     });
   }
+}
+
+
+// --- Service Factory ---
+
+let yclientsServiceInstance: IYclientsService | null = null;
+
+/**
+ * Фабричная функция для создания или получения единственного экземпляра сервиса YCLIENTS.
+ * Гарантирует, что сервис инициализируется только один раз (Singleton).
+ * @returns {Promise<IYclientsService>} Экземпляр сервиса для работы с YCLIENTS.
+ * @throws {Error} Если переменные окружения YCLIENTS_USER_TOKEN или YCLIENTS_COMPANY_ID не установлены.
+ */
+export async function createYclientsService(): Promise<IYclientsService> {
+  if (yclientsServiceInstance) {
+    return yclientsServiceInstance;
+  }
+
+  const userToken = process.env.YCLIENTS_USER_TOKEN;
+  const companyId = process.env.YCLIENTS_COMPANY_ID;
+
+  if (!userToken) {
+    throw new Error('YCLIENTS_USER_TOKEN is not set in environment variables.');
+  }
+  if (!companyId) {
+    throw new Error('YCLIENTS_COMPANY_ID is not set in environment variables.');
+  }
+
+  const config: YclientsServiceConfig = {
+    userToken,
+    companyId: parseInt(companyId, 10),
+  };
+  
+  if (isNaN(config.companyId)) {
+      throw new Error('YCLIENTS_COMPANY_ID is not a valid number.');
+  }
+
+  yclientsServiceInstance = new YclientsService(config);
+  return yclientsServiceInstance;
 }
