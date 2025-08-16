@@ -48,29 +48,54 @@ export interface ContentPage {
     updatedAt: Date;
 }
 
+/**
+ * Описывает новостную статью/пост в блоге.
+ */
+export interface Article {
+    id: string;
+    slug: string; // Уникальный идентификатор для URL
+    title: string;
+    authorId?: string; // Связь с пользователем-автором
+    publishedAt: Date;
+    mainImageUrl?: string;
+    contentHtml: string;
+    seoDescription?: string;
+    tags?: string[];
+    commentCount: number;
+    published: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+/**
+ * Описывает комментарий к статье.
+ */
+export interface Comment {
+    id: string;
+    articleId: string; // Связь со статьей
+    authorName: string;
+    text: string;
+    createdAt: Date;
+    isApproved: boolean; // Флаг для модерации
+}
+
 
 // --- Service Interface ---
 
-/**
- * Параметры для создания нового члена клуба.
- */
+// --- Club Members ---
 export type CreateMemberParams = Omit<ClubMember, 'id' | 'createdAt' | 'updatedAt'>;
-
-/**
- * Параметры для обновления данных члена клуба.
- * Все поля опциональны.
- */
 export type UpdateMemberParams = Partial<Omit<ClubMember, 'id' | 'createdAt'>>;
 
-/**
- * Параметры для создания новой контентной страницы.
- */
+// --- Content Pages ---
 export type CreateContentPageParams = Omit<ContentPage, 'id' | 'createdAt' | 'updatedAt'>;
-
-/**
- * Параметры для обновления контентной страницы.
- */
 export type UpdateContentPageParams = Partial<CreateContentPageParams>;
+
+// --- Articles ---
+export type CreateArticleParams = Omit<Article, 'id' | 'createdAt' | 'updatedAt' | 'commentCount'>;
+export type UpdateArticleParams = Partial<CreateArticleParams>;
+
+// --- Comments ---
+export type CreateCommentParams = Omit<Comment, 'id' | 'createdAt' | 'isApproved'>;
 
 
 /**
@@ -91,4 +116,17 @@ export interface IDatabaseService {
   createContentPage(params: CreateContentPageParams): Promise<ContentPage>;
   updateContentPage(id: string, params: UpdateContentPageParams): Promise<ContentPage>;
   deleteContentPage(id: string): Promise<void>;
+
+  // --- Articles (Blog) ---
+  findArticleBySlug(slug: string): Promise<Article | null>;
+  getAllArticles(): Promise<Article[]>;
+  createArticle(params: CreateArticleParams): Promise<Article>;
+  updateArticle(id: string, params: UpdateArticleParams): Promise<Article>;
+  deleteArticle(id: string): Promise<void>;
+
+  // --- Comments ---
+  getCommentsByArticleId(articleId: string, onlyApproved?: boolean): Promise<Comment[]>;
+  createComment(params: CreateCommentParams): Promise<Comment>;
+  approveComment(id: string): Promise<Comment>;
+  deleteComment(id: string): Promise<void>;
 }
