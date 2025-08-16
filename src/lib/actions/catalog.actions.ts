@@ -9,6 +9,7 @@
 import { createYclientsService } from '../yclients/yclients.service.server';
 import { z } from 'zod';
 import { YcClient } from '../yclients/yclients.contracts';
+import { createDbService } from '../database/db.service.server';
 
 const actionError = { _server: ['Произошла внутренняя ошибка. Попробуйте позже.'] };
 
@@ -85,19 +86,21 @@ export async function createBookingRequestAction(params: z.infer<typeof CreateBo
         }
         
         const { client: clientData, serviceTitle, datetime } = validation.data;
+        
+        // 1. Получаем оба сервиса через фабрики
         const yclientsService = await createYclientsService();
+        const dbService = await createDbService();
 
-        // 1. Найти или создать клиента
-        let client: YcClient | null = await yclientsService.findClientByPhone(clientData.phone);
-        if (!client) {
-            client = await yclientsService.createClient(clientData);
+        // 2. Найти или создать клиента в YCLIENTS
+        let ycClient: YcClient | null = await yclientsService.findClientByPhone(clientData.phone);
+        if (!ycClient) {
+            ycClient = await yclientsService.createClient(clientData);
         }
-        if (!client) {
-            // Этого не должно случиться, если API работает корректно
+        if (!ycClient) {
             throw new Error('Failed to find or create a client in YCLIENTS');
         }
 
-        // 2. Сформировать комментарий для заявки
+        // 3. Сформировать комментарий для заявки в YCLIENTS
         const requestDate = new Date(datetime).toLocaleString('ru-RU', {
             day: '2-digit',
             month: '2-digit',
@@ -107,10 +110,23 @@ export async function createBookingRequestAction(params: z.infer<typeof CreateBo
         });
         const comment = `[GTS-APP] Новая заявка от ${clientData.name} (${clientData.phone}). Услуга: "${serviceTitle}". Желаемое время: ${requestDate}.`;
         
-        // 3. Обновить комментарий клиента в YCLIENTS
-        await yclientsService.updateClientComment(client.id, comment);
+        await yclientsService.updateClientComment(ycClient.id, comment);
 
-        return { data: { success: true, clientId: client.id }, error: null };
+        // 4. Синхронизировать с нашей базой данных
+        let clubMember = await dbService.findMemberByYclientsId(ycClient.id);
+        if (!clubMember) {
+            clubMember = await dbService.createMember({
+                yclientsClientId: ycClient.id,
+                name: ycClient.name,
+                phone: ycClient.phone,
+                email: ycClient.email,
+                status: 'Bronze', // Статус по умолчанию для новых
+                points: 0,
+            });
+        }
+        // В будущем здесь может быть логика обновления данных, если они изменились
+
+        return { data: { success: true, yclientsClientId: ycClient.id, clubMemberId: clubMember.id }, error: null };
 
     } catch (err) {
         console.error('Ошибка в createBookingRequestAction:', err);
