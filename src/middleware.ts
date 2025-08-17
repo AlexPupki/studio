@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getFeature } from '@/lib/server/config';
-import { getEnv } from '@/lib/server/config';
+import { getFeature, getEnv } from '@/lib/server/config';
 
 
 export async function middleware(request: NextRequest) {
