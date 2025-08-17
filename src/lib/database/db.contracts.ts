@@ -5,20 +5,65 @@
  * для взаимодействия с нашей внутренней базой данных.
  */
 
-// --- Data Transfer Objects (DTOs) ---
+// --- IAM Domain ---
 
-/**
- * Описывает статус членства в клубе.
- */
+export type User = {
+  id: string;
+  phoneE164: string;
+  preferredLanguage?: 'ru' | 'en';
+  status: 'active' | 'blocked';
+  createdAt: string; // ISO 8601
+  lastLoginAt?: string; // ISO 8601
+};
+
+export type LoginCode = {
+  id: string;
+  phoneE164: string;
+  codeHash: string; // Хэш кода, а не сам код
+  issuedAt: string; // ISO 8601
+  expiresAt: string; // ISO 8601
+  attempts: number;
+  usedAt?: string | null; // Помечаем, когда код был использован
+  createdIp?: string;
+  createdUa?: string;
+};
+
+export type Session = {
+  id: string;
+  userId: string;
+  issuedAt: string; // ISO 8601
+  expiresAt: string; // ISO 8601
+  ip?: string;
+  ua?: string;
+  revokedAt?: string | null; // ISO 8601, если сессия отозвана
+};
+
+export type AuditEventName =
+  | 'login_code_requested'
+  | 'login_code_verified'
+  | 'login_code_failed'
+  | 'session_created'
+  | 'logout'
+  | 'rate_limit_triggered'
+  | 'new_user_registered';
+
+export type AuditEvent = {
+  id: string;
+  ts: string; // ISO 8601
+  userId?: string | null; // Может быть null для событий до аутентификации
+  event: AuditEventName;
+  ip?: string;
+  ua?: string;
+  meta?: Record<string, unknown>;
+};
+
+// --- Club Members (separate from User for now) ---
 export type ClubMemberStatus = 'Bronze' | 'Silver' | 'Gold' | 'VIP';
 
-/**
- * Описывает члена клуба в нашей базе данных.
- */
 export interface ClubMember {
-  id: string; // Наш внутренний ID
-  yclientsClientId: number; // ID из YCLIENTS для связи
-  phone: string; // Телефон для поиска
+  id: string;
+  yclientsClientId: number;
+  phone: string;
   name: string;
   email?: string;
   status: ClubMemberStatus;
@@ -27,12 +72,10 @@ export interface ClubMember {
   updatedAt: Date;
 }
 
-/**
- * Описывает контентную страницу для услуги или техники.
- */
+// --- Content & Blog ---
 export interface ContentPage {
-    id: string; // Внутренний ID документа
-    slug: string; // Уникальный идентификатор для URL
+    id: string;
+    slug: string;
     title: string;
     shortDescription?: string;
     mainImageUrl?: string;
@@ -41,21 +84,17 @@ export interface ContentPage {
     characteristics?: { label: string; value: string }[];
     routeDescriptionHtml?: string;
     conditionsHtml?: string;
-    // Связь с операционной сущностью в YCLIENTS
     yclientsServiceId: number; 
     published: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
 
-/**
- * Описывает новостную статью/пост в блоге.
- */
 export interface Article {
     id: string;
-    slug: string; // Уникальный идентификатор для URL
+    slug: string;
     title: string;
-    authorId?: string; // Связь с пользователем-автором
+    authorId?: string;
     publishedAt: Date;
     mainImageUrl?: string;
     contentHtml: string;
@@ -67,42 +106,56 @@ export interface Article {
     updatedAt: Date;
 }
 
-/**
- * Описывает комментарий к статье.
- */
 export interface Comment {
     id: string;
-    articleId: string; // Связь со статьей
+    articleId: string;
     authorName: string;
     text: string;
     createdAt: Date;
-    isApproved: boolean; // Флаг для модерации
+    isApproved: boolean;
 }
 
 
-// --- Service Interface ---
+// --- Service Interface & Params ---
 
-// --- Club Members ---
+// IAM
+export type CreateUserParams = Pick<User, 'phoneE164'> & Partial<Pick<User, 'preferredLanguage'>>;
+export type CreateLoginCodeParams = Pick<LoginCode, 'phoneE164' | 'codeHash' | 'expiresAt' | 'issuedAt'>;
+export type CreateSessionParams = Pick<Session, 'userId' | 'issuedAt' | 'expiresAt'> & Partial<Pick<Session, 'ip' | 'ua'>>;
+export type CreateAuditParams = Pick<AuditEvent, 'event'> & Partial<Omit<AuditEvent, 'id' | 'ts'>>;
+
+// Club Members
 export type CreateMemberParams = Omit<ClubMember, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateMemberParams = Partial<Omit<ClubMember, 'id' | 'createdAt'>>;
 
-// --- Content Pages ---
+// Content Pages
 export type CreateContentPageParams = Omit<ContentPage, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateContentPageParams = Partial<CreateContentPageParams>;
 
-// --- Articles ---
+// Articles
 export type CreateArticleParams = Omit<Article, 'id' | 'createdAt' | 'updatedAt' | 'commentCount'>;
 export type UpdateArticleParams = Partial<CreateArticleParams>;
 
-// --- Comments ---
+// Comments
 export type CreateCommentParams = Omit<Comment, 'id' | 'createdAt' | 'isApproved'>;
 
-
-/**
- * Интерфейс сервиса для работы с базой данных.
- * Определяет все доступные операции, не раскрывая детали их реализации (Firestore, SQL и т.д.).
- */
 export interface IDatabaseService {
+  // --- IAM ---
+  findUserByPhone(phone: string): Promise<User | null>;
+  createUser(params: CreateUserParams): Promise<User>;
+  updateUserLastLogin(userId: string): Promise<void>;
+
+  createLoginCode(params: CreateLoginCodeParams): Promise<LoginCode>;
+  findActiveLoginCode(phoneE164: string): Promise<LoginCode | null>;
+  incrementLoginCodeAttempts(id: string): Promise<void>;
+  invalidateLoginCode(id: string): Promise<void>;
+
+  findSessionById(id: string): Promise<Session | null>;
+  createSession(params: CreateSessionParams): Promise<Session>;
+  revokeSession(id: string): Promise<void>;
+  
+  createAuditEvent(params: CreateAuditParams): Promise<void>;
+  
   // --- Club Members ---
   findMemberByPhone(phone: string): Promise<ClubMember | null>;
   findMemberByYclientsId(yclientsId: number): Promise<ClubMember | null>;

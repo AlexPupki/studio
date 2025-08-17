@@ -12,30 +12,147 @@ import {
     IDatabaseService, 
     UpdateArticleParams,
     UpdateContentPageParams, 
-    UpdateMemberParams 
+    UpdateMemberParams,
+    User,
+    LoginCode,
+    Session,
+    AuditEvent,
+    CreateUserParams,
+    CreateLoginCodeParams,
+    CreateSessionParams,
+    CreateAuditParams
 } from "./db.contracts";
 
 /**
  * @fileoverview Этот файл содержит фабрику для создания сервиса базы данных.
  * В данный момент он возвращает "фейковый" сервис-заглушку для разработки.
- * В будущем здесь будет инициализация реального клиента БД (например, Firestore).
  */
 
 
-// --- Mock (Fake) Service ---
-
-/**
- * Это временная реализация-заглушка нашего сервиса БД.
- * Она не хранит данные и предназначена только для того, чтобы
- * остальная часть приложения могла компилироваться и работать
- * во время разработки.
- */
 class MockDatabaseService implements IDatabaseService {
-    // --- Club Members ---
+    // --- Mock Data Store ---
+    private users: Map<string, User> = new Map();
+    private loginCodes: Map<string, LoginCode> = new Map();
+    private sessions: Map<string, Session> = new Map();
+    private auditEvents: AuditEvent[] = [];
+    private clubMembers: Map<string, ClubMember> = new Map();
 
+    // --- IAM ---
+    async findUserByPhone(phone: string): Promise<User | null> {
+        for (const user of this.users.values()) {
+            if (user.phoneE164 === phone) {
+                console.log(`[MockDB] Found user by phone: ${phone}`);
+                return user;
+            }
+        }
+        console.log(`[MockDB] User not found by phone: ${phone}`);
+        return null;
+    }
+
+    async createUser(params: CreateUserParams): Promise<User> {
+        const id = `user_${Date.now()}`;
+        const newUser: User = {
+            id,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            ...params,
+        };
+        this.users.set(id, newUser);
+        console.log(`[MockDB] Created user:`, newUser);
+        return newUser;
+    }
+    
+    async updateUserLastLogin(userId: string): Promise<void> {
+        const user = this.users.get(userId);
+        if (user) {
+            user.lastLoginAt = new Date().toISOString();
+            console.log(`[MockDB] Updated last login for user ${userId}`);
+        }
+    }
+
+    async createLoginCode(params: CreateLoginCodeParams): Promise<LoginCode> {
+        const id = `code_${Date.now()}`;
+        const newCode: LoginCode = {
+            id,
+            attempts: 0,
+            ...params,
+        };
+        this.loginCodes.set(id, newCode);
+        console.log(`[MockDB] Created login code for ${params.phoneE164}`);
+        return newCode;
+    }
+
+    async findActiveLoginCode(phoneE164: string): Promise<LoginCode | null> {
+        for (const code of this.loginCodes.values()) {
+            if (
+                code.phoneE164 === phoneE164 &&
+                !code.usedAt &&
+                new Date(code.expiresAt) > new Date()
+            ) {
+                console.log(`[MockDB] Found active login code for ${phoneE164}`);
+                return code;
+            }
+        }
+        console.log(`[MockDB] No active login code found for ${phoneE164}`);
+        return null;
+    }
+    
+    async incrementLoginCodeAttempts(id: string): Promise<void> {
+        const code = this.loginCodes.get(id);
+        if (code) {
+            code.attempts += 1;
+            console.log(`[MockDB] Incremented attempts for code ${id} to ${code.attempts}`);
+        }
+    }
+
+    async invalidateLoginCode(id: string): Promise<void> {
+        const code = this.loginCodes.get(id);
+        if (code) {
+            code.usedAt = new Date().toISOString();
+            console.log(`[MockDB] Invalidated login code ${id}`);
+        }
+    }
+    
+    async findSessionById(id: string): Promise<Session | null> {
+        const session = this.sessions.get(id) || null;
+        console.log(`[MockDB] Finding session by ID ${id}, found: ${!!session}`);
+        return session;
+    }
+
+    async createSession(params: CreateSessionParams): Promise<Session> {
+        const id = `session_${Date.now()}`;
+        const newSession: Session = {
+            id,
+            ...params,
+        };
+        this.sessions.set(id, newSession);
+        console.log(`[MockDB] Created session ${id} for user ${params.userId}`);
+        return newSession;
+    }
+
+    async revokeSession(id: string): Promise<void> {
+        const session = this.sessions.get(id);
+        if (session) {
+            session.revokedAt = new Date().toISOString();
+            console.log(`[MockDB] Revoked session ${id}`);
+        }
+    }
+
+    async createAuditEvent(params: CreateAuditParams): Promise<void> {
+        const id = `event_${Date.now()}`;
+        const newEvent: AuditEvent = {
+            id,
+            ts: new Date().toISOString(),
+            ...params,
+        };
+        this.auditEvents.push(newEvent);
+        console.log(`[MockDB] Created audit event:`, newEvent.event);
+    }
+    
+    // --- Club Members ---
     async findMemberByPhone(phone: string): Promise<ClubMember | null> {
         console.log(`[MockDB] Поиск пользователя по телефону: ${phone}`);
-        return null; // Всегда возвращаем null, пока нет реальной БД
+        return null;
     }
 
     async findMemberByYclientsId(yclientsId: number): Promise<ClubMember | null> {
@@ -56,8 +173,6 @@ class MockDatabaseService implements IDatabaseService {
 
     async updateMember(id: string, params: UpdateMemberParams): Promise<ClubMember> {
         console.log(`[MockDB] Обновление пользователя ${id}:`, params);
-        // В "моке" мы не можем вернуть реально обновленные данные,
-        // поэтому просто возвращаем то, что пришло.
         return {
             id,
             yclientsClientId: 0,
@@ -72,7 +187,6 @@ class MockDatabaseService implements IDatabaseService {
     }
 
     // --- Content (CMS) ---
-
     async findContentPageBySlug(slug: string): Promise<ContentPage | null> {
         console.log(`[MockDB] Поиск страницы по slug: ${slug}`);
         return null;
@@ -119,7 +233,6 @@ class MockDatabaseService implements IDatabaseService {
     }
 
     // --- Articles (Blog) ---
-
     async findArticleBySlug(slug: string): Promise<Article | null> {
         console.log(`[MockDB] Поиск статьи по slug: ${slug}`);
         return null;
@@ -163,7 +276,6 @@ class MockDatabaseService implements IDatabaseService {
     }
 
     // --- Comments ---
-
     async getCommentsByArticleId(articleId: string, onlyApproved = true): Promise<Comment[]> {
         console.log(`[MockDB] Получение комментариев для статьи ${articleId} (только одобренные: ${onlyApproved})`);
         return [];
@@ -173,7 +285,7 @@ class MockDatabaseService implements IDatabaseService {
         console.log('[MockDB] Создание комментария:', params);
         const newComment: Comment = {
             id: `mock_comment_${Date.now()}`,
-            isApproved: false, // Новые комменты всегда не одобрены
+            isApproved: false,
             createdAt: new Date(),
             ...params,
         };
@@ -182,7 +294,6 @@ class MockDatabaseService implements IDatabaseService {
 
     async approveComment(id: string): Promise<Comment> {
         console.log(`[MockDB] Одобрение комментария ${id}`);
-        // В моке просто возвращаем "как будто" одобрили
         return {
             id,
             articleId: 'mock_article_1',
@@ -204,19 +315,12 @@ class MockDatabaseService implements IDatabaseService {
 
 let dbServiceInstance: IDatabaseService | null = null;
 
-/**
- * Фабричная функция для создания или получения единственного экземпляра сервиса БД.
- * Гарантирует, что сервис инициализируется только один раз (Singleton).
- * @returns {Promise<IDatabaseService>} Экземпляр сервиса для работы с БД.
- */
 export async function createDbService(): Promise<IDatabaseService> {
   if (dbServiceInstance) {
     return dbServiceInstance;
   }
 
-  // TODO: В будущем здесь будет инициализация реального клиента БД (например, Firestore)
-  // на основе переменных окружения.
-  console.warn('ВНИМАНИЕ: Используется MockDatabaseService. Подключите реальную базу данных.');
+  console.warn('ВНИМАНИЕ: Используется MockDatabaseService. Данные не сохраняются между запросами.');
   
   dbServiceInstance = new MockDatabaseService();
   return dbServiceInstance;

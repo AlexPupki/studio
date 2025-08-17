@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,18 +13,33 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-
+import { requestLoginCodeAction, verifyLoginCodeAction } from '@/lib/iam/auth.actions.server';
+import { maskPhone } from '@/lib/iam/phone.utils';
 
 // Схема валидации для формы верификации
 const VerifySchema = z.object({
   code: z.string().length(6, { message: 'Код должен состоять из 6 цифр' }),
 });
 
-export default function VerifyPage() {
+function VerifyPageContent() {
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isResending, setIsResending] = React.useState(false);
+
+  const router = useRouter();
   const searchParams = useSearchParams();
-  // TODO: Получать номер телефона из параметров URL
-  const phone = searchParams.get('phone') || '+7 (999) ***-**-12';
+  const { toast } = useToast();
+
+  const phoneE164 = searchParams.get('phone');
+
+  const [cooldown, setCooldown] = React.useState(60);
+  const isResendDisabled = cooldown > 0;
+
+  React.useEffect(() => {
+    const timerId = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, []);
 
   const form = useForm<z.infer<typeof VerifySchema>>({
     resolver: zodResolver(VerifySchema),
@@ -33,38 +48,66 @@ export default function VerifyPage() {
     },
   });
 
+  if (!phoneE164) {
+    // Этого не должно быть при правильном флоу, но лучше обработать
+    React.useEffect(() => {
+      router.replace('/login');
+    }, [router]);
+    return null; 
+  }
+
   // Обработчик отправки формы
   async function onSubmit(values: z.infer<typeof VerifySchema>) {
     setIsLoading(true);
-    console.log('Verify form submitted:', values);
-    // TODO: Вызвать серверный экшен verifyLoginCodeAction
-    
-    // Имитация задержки сети
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+        const result = await verifyLoginCodeAction({ phoneE164, code: values.code });
 
-    toast({
-      title: 'Успешная авторизация (симуляция)',
-      description: 'Вы будете перенаправлены в личный кабинет.',
-    });
-    
-     // TODO: Реализовать редирект на /account после успешной верификации
-
-    setIsLoading(false);
+        if (result.error) {
+            toast({
+                variant: 'destructive',
+                title: 'Ошибка',
+                description: result.error,
+            });
+            form.setError('code', { message: result.error });
+        } else if (result.data) {
+            toast({
+                title: 'Успешная авторизация',
+                description: 'Вы будете перенаправлены в личный кабинет.',
+            });
+            // После успешной верификации Next.js автоматически обновит layout,
+            // т.к. middleware увидит сессию и пропустит на /account.
+            // Просто переходим на /account.
+            router.push('/account');
+        }
+    } catch (err) {
+         toast({
+            variant: 'destructive',
+            title: 'Непредвиденная ошибка',
+            description: 'Что-то пошло не так. Попробуйте снова.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
   }
 
-  // TODO: Реализовать логику таймера и повторной отправки кода
-  const [cooldown, setCooldown] = React.useState(60);
-  const isResendDisabled = cooldown > 0;
-
-  React.useEffect(() => {
-    if (isResendDisabled) {
-      const timer = setInterval(() => {
-        setCooldown((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
+  // Обработчик повторной отправки кода
+  async function handleResendCode() {
+    if (isResendDisabled) return;
+    setIsResending(true);
+    try {
+        const result = await requestLoginCodeAction({ phoneE164 });
+        if (result.error) {
+             toast({ variant: 'destructive', title: 'Ошибка', description: result.error });
+        } else {
+            toast({ title: 'Код отправлен повторно'});
+            setCooldown(60); // Сбрасываем таймер
+        }
+    } catch(err) {
+        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось отправить код.' });
+    } finally {
+        setIsResending(false);
     }
-  }, [isResendDisabled]);
-  
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -72,7 +115,7 @@ export default function VerifyPage() {
         <CardHeader className="text-center">
           <CardTitle>Подтверждение номера</CardTitle>
           <CardDescription>
-            Мы отправили код на номер {phone}.
+            Мы отправили код на номер {maskPhone(phoneE164)}.
             <Link href="/login" className="ml-2 font-medium text-primary hover:underline">
               Изменить
             </Link>
@@ -110,8 +153,8 @@ export default function VerifyPage() {
                         {isResendDisabled ? (
                             `Отправить код повторно через ${cooldown} сек.`
                         ) : (
-                            <Button variant="link" size="sm" onClick={() => console.log('Resend code')} className="p-0 h-auto">
-                                Отправить код еще раз
+                            <Button variant="link" size="sm" onClick={handleResendCode} disabled={isResending} className="p-0 h-auto">
+                                {isResending ? 'Отправка...' : 'Отправить код еще раз'}
                             </Button>
                         )}
                     </p>
@@ -121,4 +164,13 @@ export default function VerifyPage() {
       </Card>
     </div>
   );
+}
+
+// Обертка для работы с Suspense, т.к. useSearchParams его требует
+export default function VerifyPage() {
+    return (
+        <React.Suspense fallback={<div>Загрузка...</div>}>
+            <VerifyPageContent />
+        </React.Suspense>
+    );
 }

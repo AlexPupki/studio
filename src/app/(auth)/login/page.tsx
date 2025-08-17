@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { requestLoginCodeAction } from '@/lib/iam/auth.actions.server';
+import { normalizePhone } from '@/lib/iam/phone.utils';
 
 // Схема валидации для формы входа
 const LoginSchema = z.object({
@@ -24,6 +27,8 @@ const LoginSchema = z.object({
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = React.useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -36,20 +41,40 @@ export default function LoginPage() {
   // Обработчик отправки формы
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     setIsLoading(true);
-    console.log('Login form submitted:', values);
-    // TODO: Вызвать серверный экшен requestLoginCodeAction
     
-    // Имитация задержки сети
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+        const phoneE164 = normalizePhone(values.phone);
+        if (!phoneE164) {
+            form.setError('phone', { message: 'Неверный формат номера телефона.' });
+            setIsLoading(false);
+            return;
+        }
 
-    toast({
-      title: 'Код отправлен (симуляция)',
-      description: `На номер ${values.phone} отправлен код подтверждения.`,
-    });
-    
-    // TODO: Реализовать редирект на /verify с передачей номера телефона
-    
-    setIsLoading(false);
+        const result = await requestLoginCodeAction({ phoneE164 });
+
+        if (result.error) {
+            toast({
+                variant: 'destructive',
+                title: 'Ошибка',
+                description: result.error,
+            });
+        } else if (result.data) {
+            toast({
+                title: 'Код отправлен (симуляция)',
+                description: `На номер ${phoneE164} отправлен код подтверждения.`,
+            });
+            // Перенаправляем на страницу верификации
+            router.push(`/verify?phone=${encodeURIComponent(phoneE164)}`);
+        }
+    } catch (err) {
+         toast({
+            variant: 'destructive',
+            title: 'Непредвиденная ошибка',
+            description: 'Что-то пошло не так. Попробуйте снова.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   return (

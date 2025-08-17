@@ -7,9 +7,12 @@ export type AnalyticsEventName =
   | 'booking_request_created'
   | 'new_club_member_registered'
   | 'article_comment_submitted'
-  | 'account_login_success'
-  | 'account_login_failed'
-  | 'account_details_viewed';
+  | 'account_details_viewed'
+  // IAM Events
+  | 'login_code_requested'
+  | 'login_code_verified'
+  | 'login_code_failed'
+  | 'new_user_registered';
 
 
 export interface IAnalyticsService {

@@ -1,3 +1,4 @@
+'use server';
 /**
  * @fileoverview Этот файл централизует управление feature-флагами в приложении.
  * Он читает переменные окружения и предоставляет типизированный и безопасный
@@ -42,4 +43,22 @@ export const features = {
    * @env FEATURE_JWT_ISSUING
    */
   jwtIssuing: getFlag(process.env.FEATURE_JWT_ISSUING, false),
+
+  /**
+   * Включает интеграцию с онлайн-провайдерами платежей.
+   * @env FEATURE_PAYMENTS_ONLINE
+   */
+  paymentsOnline: getFlag(process.env.FEATURE_PAYMENTS_ONLINE, false),
+
+  /**
+   * Включает функционал совместных поездок (per-seat).
+   * @env FEATURE_SEAT_SHARING
+   */
+  seatSharing: getFlag(process.env.FEATURE_SEAT_SHARING, false),
+
+  /**
+   * Включает доступ к партнерскому порталу.
+   * @env FEATURE_PARTNER_PORTAL
+   */
+  partnerPortal: getFlag(process.env.FEATURE_PARTNER_PORTAL, false),
 };
