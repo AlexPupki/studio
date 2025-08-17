@@ -1,4 +1,4 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/generate-backend-code.ts';
+// AI flows will be imported here
