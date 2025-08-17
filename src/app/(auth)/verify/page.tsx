@@ -29,16 +29,19 @@ function VerifyPageContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
+  // Получаем телефон из параметров URL
   const phoneE164 = searchParams.get('phone');
 
+  // Управляем таймером обратного отсчета для повторной отправки
   const [cooldown, setCooldown] = React.useState(60);
   const isResendDisabled = cooldown > 0;
 
   React.useEffect(() => {
+    // Запускаем таймер, когда компонент монтируется
     const timerId = setInterval(() => {
       setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
-    return () => clearInterval(timerId);
+    return () => clearInterval(timerId); // Очищаем таймер при размонтировании
   }, []);
 
   const form = useForm<z.infer<typeof VerifySchema>>({
@@ -49,20 +52,22 @@ function VerifyPageContent() {
   });
 
   if (!phoneE164) {
-    // Этого не должно быть при правильном флоу, но лучше обработать
+    // Если телефона в URL нет, возвращаем пользователя на страницу входа
     React.useEffect(() => {
       router.replace('/login');
     }, [router]);
     return null; 
   }
 
-  // Обработчик отправки формы
+  // Обработчик отправки формы верификации
   async function onSubmit(values: z.infer<typeof VerifySchema>) {
     setIsLoading(true);
     try {
+        // Вызываем серверный экшен для проверки кода
         const result = await verifyLoginCodeAction({ phoneE164, code: values.code });
 
         if (result.error) {
+            // Показываем ошибку
             toast({
                 variant: 'destructive',
                 title: 'Ошибка',
@@ -70,13 +75,13 @@ function VerifyPageContent() {
             });
             form.setError('code', { message: result.error });
         } else if (result.data) {
+            // При успехе показываем уведомление и перенаправляем
             toast({
                 title: 'Успешная авторизация',
                 description: 'Вы будете перенаправлены в личный кабинет.',
             });
             // После успешной верификации Next.js автоматически обновит layout,
-            // т.к. middleware увидит сессию и пропустит на /account.
-            // Просто переходим на /account.
+            // т.к. middleware (который мы создадим позже) увидит сессию и пропустит на /account.
             router.push('/account');
         }
     } catch (err) {

@@ -6,7 +6,7 @@
  */
 import 'server-only';
 import { randomBytes, createCipheriv, createDecipheriv, createHmac } from 'crypto';
-import { Session, User } from './iam.contracts';
+import { Session, User } from '../database/db.contracts';
 import { createDbService } from '../database/db.service.server';
 
 const ALGORITHM = 'aes-256-gcm';
@@ -32,7 +32,8 @@ class SessionService implements ISessionService {
     if (!secretKey || secretKey.length < 32) {
       throw new Error('SESSION_SECRET_KEY must be at least 32 characters long.');
     }
-    this.secretKey = Buffer.from(secretKey, 'hex');
+    // FIX: Removed 'hex' encoding as the secret is a plain string, not a hex string.
+    this.secretKey = Buffer.from(secretKey);
     this.cookieName = cookieName;
   }
 

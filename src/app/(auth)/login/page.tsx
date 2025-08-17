@@ -43,6 +43,7 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+        // Нормализуем телефон перед отправкой на сервер
         const phoneE164 = normalizePhone(values.phone);
         if (!phoneE164) {
             form.setError('phone', { message: 'Неверный формат номера телефона.' });
@@ -50,23 +51,27 @@ export default function LoginPage() {
             return;
         }
 
+        // Вызываем серверный экшен
         const result = await requestLoginCodeAction({ phoneE164 });
 
         if (result.error) {
+            // Показываем ошибку от сервера
             toast({
                 variant: 'destructive',
                 title: 'Ошибка',
                 description: result.error,
             });
         } else if (result.data) {
+            // Показываем "успешное" уведомление
             toast({
                 title: 'Код отправлен (симуляция)',
                 description: `На номер ${phoneE164} отправлен код подтверждения.`,
             });
-            // Перенаправляем на страницу верификации
+            // Перенаправляем на страницу верификации, передавая номер в параметрах
             router.push(`/verify?phone=${encodeURIComponent(phoneE164)}`);
         }
     } catch (err) {
+         // Обработка непредвиденных ошибок
          toast({
             variant: 'destructive',
             title: 'Непредвиденная ошибка',
