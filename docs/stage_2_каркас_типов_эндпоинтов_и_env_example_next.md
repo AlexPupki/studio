@@ -23,35 +23,38 @@ src/
       billing/
         invoices/[code]/route.ts     # GET /api/billing/invoices/{code}
         invoices/[code]/pdf/route.ts # GET /api/billing/invoices/{code}/pdf (Signed URL)
-      ops/
+      ops/                           # ЗАЩИЩЕНО MIDDLEWARE
         bookings/route.ts            # GET/POST (mark-payment-received)
         bookings/[id]/route.ts       # GET/POST/DELETE (деталь/отмена)
         slots/route.ts               # GET (календарь v0)
         slots/generate/route.ts      # POST (генерация по шаблону)
+      jobs/                          # ЗАЩИЩЕНО HMAC/IAP
+        holds/expire/route.ts        # POST /api/jobs/holds/expire (для Cloud Scheduler)
   domain/
     types.ts                         # Доменные типы (RU/EN i18n implied)
   services/
     price.server.ts                  # Сервис цен v0
-    booking.server.ts                # Draft/Hold/Confirm
+    booking.server.ts                # Draft/Hold/Confirm с транзакциями
     invoice.server.ts                # Инвойсы + PDF метаданные
-    pdf.server.ts                    # Рендер PDF → GCS
+    pdf.server.ts                    # Рендер PDF (react-pdf) → GCS
     notifications.server.ts          # Шина уведомлений (stub)
   lib/
     env.server.ts                    # Zod-валидация ENV
-    idempotency.server.ts            # Поддержка Idempotency-Key (Redis)
-    rateLimit.server.ts              # Rate limit (in-memory/Redis)
+    idempotency.server.ts            # Idempotency-Key (реализация на Redis)
+    rateLimit.server.ts              # Rate limit (реализация на Redis)
     i18n.ts                          # Локализация (минимум RU/EN)
     gcs.server.ts                    # Signed URL v4 (чтение/запись)
+    phone.server.ts                  # Валидация E.164 (libphonenumber-js)
   schemas/
     booking.ts                       # Zod DTO (request/response)
     catalog.ts                       # Zod DTO (route/slot/availability)
   tests/
-    unit/price.test.ts               # vitest: прайсер
+    integration/booking.spec.ts      # vitest: конкурентный hold
     e2e/booking.spec.ts              # Playwright: маршрут→слот→draft→hold→invoice
 
 .github/
   workflows/ci.yml                   # GitHub Actions (lint,typecheck,test,build)
-
+middleware.ts                        # Защита /api/ops/*
 .env.example                         # Переменные окружения (см. ниже)
 ```
 
@@ -65,7 +68,7 @@ export type Locale = 'ru' | 'en';
 
 export type Route = {
   id: string;
-  slug: string;
+  slug: string; // Каноничный, непереводимый
   title_i18n: Record<Locale, string>;
   intro_i18n?: Record<Locale, string>;
   duration_min: number;
@@ -80,8 +83,8 @@ export type Slot = {
   id: string;
   route_id: string;
   asset_unit_id?: string | null;
-  start_at: string; // ISO
-  end_at: string;   // ISO
+  start_at: string; // ISO, UTC
+  end_at: string;   // ISO, UTC
   capacity_total: number;
   capacity_held: number;
   capacity_confirmed: number;
@@ -95,27 +98,27 @@ export type PriceRule = {
   condition: Record<string, unknown>;
   value: PriceValue;
   priority: number;
-  valid_from?: string; // ISO
-  valid_to?: string;   // ISO
+  valid_from?: string; // ISO, UTC
+  valid_to?: string;   // ISO, UTC
   label_i18n?: Record<Locale, string>;
 };
 
 export type BookingState = 'draft' | 'on_hold' | 'confirmed' | 'canceled';
 export type Booking = {
   id: string;
-  code: string; // короткий публичный код
+  code: string; // Уникальный, base32, 8 символов
   state: BookingState;
   client_phone: string; // E.164
   client_name?: string;
   locale: Locale;
   slot_id: string;
   pax_count: number;
-  price_total: number;
+  price_total_minor_units: number; // В копейках/центах
   price_breakdown_json: unknown;
-  hold_expires_at?: string; // ISO
+  hold_expires_at?: string; // ISO, UTC
   cancel_reason?: string;
-  created_at: string; // ISO
-  updated_at: string; // ISO
+  created_at: string; // ISO, UTC
+  updated_at: string; // ISO, UTC
 };
 
 export type InvoiceStatus = 'pending' | 'received' | 'refunded';
@@ -123,10 +126,10 @@ export type Invoice = {
   id: string;
   booking_id: string;
   number: string; // INV-YYYYMM-####
-  amount_total: number;
+  amount_total_minor_units: number;
   currency: 'RUB' | 'EUR' | 'USD';
   status: InvoiceStatus;
-  due_at: string;   // ISO
+  due_at: string;   // ISO, UTC
   pdf_key?: string; // путь в GCS
   raw_payload_json?: unknown;
 };
@@ -145,7 +148,9 @@ export type Notification = {
 
 export type AuditEvent = {
   ts: string; // ISO
+  trace_id?: string;
   user_id?: string | null;
+  booking_id?: string | null;
   event:
     | 'BookingDrafted'
     | 'HoldPlaced'
@@ -155,7 +160,8 @@ export type AuditEvent = {
     | 'BookingCanceled'
     | 'InvoicePdfGenerated'
     | 'NotificationSent'
-    | 'NotificationFailed';
+    | 'NotificationFailed'
+    | 'OpsAccessDenied';
   ip?: string;
   ua?: string;
   meta?: Record<string, unknown>;
@@ -175,25 +181,26 @@ const EnvSchema = z.object({
   APP_BASE_URL: z.string().url(),
 
   // Feature flags
-  FEATURE_PUBLIC_SITE: z.string().transform(v => v === 'true').default('true' as any),
-  FEATURE_I18N: z.string().transform(v => v === 'true').default('true' as any),
-  FEATURE_PAYMENTS_ONLINE: z.string().transform(v => v === 'true').default('false' as any),
-  FEATURE_OPS_CONSOLE: z.string().transform(v => v === 'true').default('true' as any),
-  FEATURE_SEAT_SHARING: z.string().transform(v => v === 'true').default('false' as any),
+  FEATURE_PUBLIC_SITE: z.coerce.boolean().default(true),
+  FEATURE_I18N: z.coerce.boolean().default(true),
+  FEATURE_PAYMENTS_ONLINE: z.coerce.boolean().default(false),
+  FEATURE_OPS_CONSOLE: z.coerce.boolean().default(true),
+  FEATURE_SEAT_SHARING: z.coerce.boolean().default(false),
 
   // Secrets & storage
   COOKIE_SECRET_CURRENT: z.string().min(32),
   COOKIE_SECRET_PREV: z.string().min(32).optional(),
   JWT_SECRET: z.string().min(32).optional(),
+  CRON_SECRET: z.string().min(32), // Секрет для проверки вызовов от Cloud Scheduler
 
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url().optional(),
+  REDIS_URL: z.string().url(), // Обязателен для production
 
   // GCS
   GCS_BUCKET: z.string(),
   GCS_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
   GOOGLE_CLOUD_PROJECT: z.string(),
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(10), // строка JSON (для CI)
+  GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(10).refine(s => s.startsWith('{'), 'Must be a valid JSON string'),
 
   // Notifications (stub/real)
   SMTP_URL: z.string().optional(),
@@ -218,53 +225,42 @@ export const env: AppEnv = (() => {
 
 ---
 
-## ♻️ Idempotency & Rate Limit (Redis/in-memory)
+## 🔒 Защита эндпоинтов (`middleware.ts`, `route.ts`)
 
+**Middleware для `/api/ops/*`:**
 ```ts
-// src/lib/idempotency.server.ts
-import crypto from 'crypto';
-import { env } from './env.server';
+// middleware.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/server/auth/auth.actions'; // предполагая наличие такой функции
 
-// Псевдо-Redis адаптер. Подмените на ioredis при наличии REDIS_URL.
-const mem = new Map<string, { body: string; status: number; ts: number }>();
-const ttl = env.IDEMPOTENCY_TTL_SEC * 1000;
-
-export async function withIdempotency<T>(
-  key: string | undefined,
-  fn: () => Promise<{ status: number; body: unknown }>,
-): Promise<Response> {
-  const normalized = key?.trim() || '';
-  const safeKey = normalized || crypto.randomUUID();
-
-  const hit = mem.get(safeKey);
-  const now = Date.now();
-  if (hit && now - hit.ts < ttl) {
-    return new Response(hit.body, { status: hit.status, headers: { 'x-idempotent': 'hit' } });
+export async function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith('/api/ops')) {
+    const user = await getCurrentUser(); // Ваша логика получения пользователя из сессии
+    // @ts-ignore
+    if (!user || user.role !== 'Operator') {
+      // Логирование события аудита
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
+    }
   }
-
-  const { status, body } = await fn();
-  const bodyStr = JSON.stringify(body);
-  mem.set(safeKey, { body: bodyStr, status, ts: now });
-  return new Response(bodyStr, { status, headers: { 'x-idempotent': 'stored' } });
+  return NextResponse.next();
 }
+
+export const config = { matcher: ['/api/ops/:path*'] };
 ```
 
+**Защита cron-джобы:**
 ```ts
-// src/lib/rateLimit.server.ts
-const buckets = new Map<string, { count: number; resetAt: number }>();
+// src/app/api/jobs/holds/expire/route.ts
+import { NextRequest } from 'next/server';
+import { env } from '@/lib/env.server';
 
-export async function rateLimit(key: string, limit: number, windowMs: number) {
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt < now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: limit - 1 };
+export async function POST(req: NextRequest) {
+  const cronSecret = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (env.CRON_SECRET !== cronSecret) {
+    return new Response('Unauthorized', { status: 401 });
   }
-  if (bucket.count >= limit) {
-    return { allowed: false, remaining: 0, resetIn: bucket.resetAt - now };
-  }
-  bucket.count++;
-  return { allowed: true, remaining: limit - bucket.count };
+  // ... логика обработки
+  return Response.json({ ok: true });
 }
 ```
 
@@ -278,8 +274,8 @@ import { z } from 'zod';
 
 export const AvailabilityQuerySchema = z.object({
   routeId: z.string(),
-  dateFrom: z.string(),
-  dateTo: z.string(),
+  dateFrom: z.string().datetime(),
+  dateTo: z.string().datetime(),
   pax: z.coerce.number().int().positive().default(1),
   lang: z.enum(['ru', 'en']).default('ru'),
 });
@@ -289,11 +285,16 @@ export const AvailabilityQuerySchema = z.object({
 // src/schemas/booking.ts
 import { z } from 'zod';
 
+// Для валидации на сервере используем более строгую схему E.164
+const PhoneSchema = z.string().refine(val => /^\+[1-9]\d{1,14}$/.test(val), {
+  message: "Invalid E.164 phone number format"
+});
+
 export const DraftRequestSchema = z.object({
   routeId: z.string(),
   slotId: z.string(),
   pax: z.coerce.number().int().positive(),
-  phone: z.string().min(6),
+  phone: z.string().min(10), // На клиенте может быть менее строгая
   name: z.string().optional(),
   locale: z.enum(['ru', 'en']).default('ru'),
 });
@@ -307,206 +308,38 @@ export const HoldRequestSchema = z.object({
 
 ---
 
-## 💶 Сервис цен v0 (`src/services/price.server.ts`)
-
-```ts
-// src/services/price.server.ts
-import type { PriceRule } from '@/domain/types';
-
-export type PriceQuote = {
-  total: number;
-  breakdown: Array<{ key: string; label?: string; amount: number }>;
-};
-
-export async function getQuote(params: {
-  routeId: string;
-  slotId: string;
-  pax: number;
-  locale: 'ru' | 'en';
-}): Promise<PriceQuote> {
-  // TODO: подтянуть base_price для routeId, применить правила (DOW/time_range/etc)
-  const base = 5000; // stub
-  const perPax = base * params.pax;
-  const rules: PriceRule[] = []; // TODO: из БД
-
-  const breakdown = [
-    { key: 'base', label: 'Base', amount: perPax },
-    // ...добавить корректировки
-  ];
-
-  const total = breakdown.reduce((s, i) => s + i.amount, 0);
-  return { total, breakdown };
-}
-```
-
----
-
 ## 📦 Сервис бронирования (`src/services/booking.server.ts`)
 
 ```ts
 // src/services/booking.server.ts
+import { randomUUID } from 'node:crypto'; // Явный импорт
 import type { Booking } from '@/domain/types';
 import { getQuote } from './price.server';
+import { db } from '@/lib/server/db'; // Пример импорта DB-адаптера
 
-export async function draftBooking(input: {
-  routeId: string; slotId: string; pax: number; phone: string; name?: string; locale: 'ru'|'en';
-}): Promise<{ booking: Booking; quote: { total: number; breakdown: any[] } }> {
-  const quote = await getQuote({ routeId: input.routeId, slotId: input.slotId, pax: input.pax, locale: input.locale });
+export async function placeHold(bookingIdOrData: /*...*/) {
+  // ПСЕВДОКОД ТРАНЗАКЦИИ
+  return db.transaction(async (tx) => {
+    // 1. Блокируем слот от конкурентных изменений
+    const slot = await tx.query('SELECT * FROM slot WHERE id=$1 FOR UPDATE', [slotId]);
 
-  // TODO: запись в БД как draft (или ephemeral, если решите)
-  const booking: Booking = {
-    id: crypto.randomUUID(),
-    code: Math.random().toString(36).slice(2, 8).toUpperCase(),
-    state: 'draft',
-    client_phone: input.phone,
-    client_name: input.name,
-    locale: input.locale,
-    slot_id: input.slotId,
-    pax_count: input.pax,
-    price_total: quote.total,
-    price_breakdown_json: quote.breakdown,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  return { booking, quote };
-}
+    // 2. Проверяем инвариант вместимости
+    if ((slot.held + slot.confirmed + pax) > slot.total) {
+      throw new Error('slot_overbooked');
+    }
 
-export async function placeHold(bookingIdOrData: { bookingId?: string; data?: {
-  routeId: string; slotId: string; pax: number; phone: string; name?: string; locale: 'ru'|'en';
-} }): Promise<{ booking: Booking; invoiceUrl: string }> {
-  // TODO: транзакция: capacity_held++, booking → on_hold, hold_expires_at
-  const booking: Booking = {
-    id: bookingIdOrData.bookingId || crypto.randomUUID(),
-    code: Math.random().toString(36).slice(2, 8).toUpperCase(),
-    state: 'on_hold',
-    client_phone: bookingIdOrData.data?.phone || '+70000000000',
-    client_name: bookingIdOrData.data?.name,
-    locale: bookingIdOrData.data?.locale || 'ru',
-    slot_id: bookingIdOrData.data?.slotId || 'slot-1',
-    pax_count: bookingIdOrData.data?.pax || 1,
-    price_total: 5000,
-    price_breakdown_json: [],
-    hold_expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  const invoiceUrl = `/invoice/${booking.code}`; // фронтовый роут
-  return { booking, invoiceUrl };
-}
-```
+    // 3. Обновляем слот и бронирование
+    await tx.query('UPDATE slot SET held = held + $1 WHERE id=$2', [pax, slotId]);
+    const booking = await tx.query('UPDATE booking SET state="on_hold", hold_expires_at=... WHERE id=$1 RETURNING *', [bookingId]);
 
----
-
-## ✉️ Уведомления (stub) (`src/services/notifications.server.ts`)
-
-```ts
-// src/services/notifications.server.ts
-export async function sendNotification(params: {
-  templateKey: string;
-  to: { phone?: string; email?: string; wa?: string };
-  locale: 'ru'|'en';
-  vars: Record<string, unknown>;
-}): Promise<{ id: string }> {
-  // TODO: провайдеры (sms/email/wa). Пока — лог.
-  console.log('[notify]', params);
-  return { id: crypto.randomUUID() };
-}
-```
-
----
-
-## 🧾 PDF-инвойсы и GCS (`src/services/pdf.server.ts`, `src/lib/gcs.server.ts`)
-
-```ts
-// src/lib/gcs.server.ts
-import { env } from './env.server';
-
-export async function getSignedReadUrl(objectKey: string): Promise<string> {
-  // TODO: использовать @google-cloud/storage, Signed URL v4, TTL из env
-  return `${env.APP_BASE_URL}/stub-gcs/${encodeURIComponent(objectKey)}`;
-}
-```
-
-```ts
-// src/services/pdf.server.ts
-export async function ensureInvoicePdf(bookingCode: string): Promise<{ key: string }> {
-  // TODO: реальный рендер PDF и upload → GCS
-  return { key: `invoices/${bookingCode}.pdf` };
+    return { booking, invoiceUrl: `/invoice/${booking.code}` };
+  });
 }
 ```
 
 ---
 
 ## 🌐 Эндпоинты (Next.js App Router)
-
-### `GET /api/public/catalog/routes` — список маршрутов
-
-```ts
-// src/app/api/public/catalog/routes/route.ts
-import { NextRequest } from 'next/server';
-
-export async function GET(req: NextRequest) {
-  const data = [{ id: 'r1', slug: 'sea-trip', title_i18n: { ru: 'Морская прогулка', en: 'Sea Trip' }, duration_min: 120, capacity: 8, status: 'active' }];
-  return Response.json({ routes: data });
-}
-```
-
-### `GET /api/public/routes/{slug}` — деталь маршрута
-
-```ts
-// src/app/api/public/routes/[slug]/route.ts
-import { NextRequest } from 'next/server';
-
-export async function GET(_req: NextRequest, { params }: { params: { slug: string } }) {
-  const { slug } = params;
-  // TODO: fetch из БД
-  return Response.json({ route: { id: 'r1', slug, title_i18n: { ru: 'Маршрут', en: 'Route' }, duration_min: 90, capacity: 6, status: 'active' } });
-}
-```
-
-### `GET /api/public/availability` — доступные слоты
-
-```ts
-// src/app/api/public/availability/route.ts
-import { NextRequest } from 'next/server';
-import { AvailabilityQuerySchema } from '@/schemas/catalog';
-
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const parsed = AvailabilityQuerySchema.safeParse(Object.fromEntries(url.searchParams));
-  if (!parsed.success) return Response.json({ error: parsed.error.format() }, { status: 400 });
-
-  // TODO: выборка слотов по routeId/date range
-  return Response.json({ slots: [] });
-}
-```
-
-### `POST /api/booking/draft` — расчёт цены + draft
-
-```ts
-// src/app/api/booking/draft/route.ts
-import { NextRequest } from 'next/server';
-import { DraftRequestSchema } from '@/schemas/booking';
-import { withIdempotency } from '@/lib/idempotency.server';
-import { rateLimit } from '@/lib/rateLimit.server';
-import { draftBooking } from '@/services/booking.server';
-
-export async function POST(req: NextRequest) {
-  const idemKey = req.headers.get('idempotency-key') || undefined;
-  const ip = req.headers.get('x-forwarded-for') || 'ip';
-  const rl = await rateLimit(`draft:${ip}`, 30, 60_000);
-  if (!rl.allowed) return Response.json({ error: 'rate_limited' }, { status: 429 });
-
-  return withIdempotency(idemKey, async () => {
-    const body = await req.json();
-    const parsed = DraftRequestSchema.safeParse(body);
-    if (!parsed.success) return { status: 400, body: { error: parsed.error.format() } };
-
-    const { booking, quote } = await draftBooking(parsed.data);
-    return { status: 200, body: { bookingId: booking.id, codePreview: booking.code, price: quote } };
-  });
-}
-```
 
 ### `POST /api/booking/hold` — резервирование (on\_hold)
 
@@ -517,6 +350,9 @@ import { HoldRequestSchema } from '@/schemas/booking';
 import { withIdempotency } from '@/lib/idempotency.server';
 import { rateLimit } from '@/lib/rateLimit.server';
 import { placeHold } from '@/services/booking.server';
+
+// Фиксация runtime для гарантии доступа к Node.js API
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   const idemKey = req.headers.get('idempotency-key') || undefined;
@@ -529,104 +365,25 @@ export async function POST(req: NextRequest) {
     const parsed = HoldRequestSchema.safeParse(body);
     if (!parsed.success) return { status: 400, body: { error: parsed.error.format() } };
 
-    const { booking, invoiceUrl } = await placeHold({
-      bookingId: parsed.data.bookingDraftId,
-      data: parsed.data.data,
-    });
-    return { status: 200, body: { bookingCode: booking.code, holdExpiresAt: booking.hold_expires_at, invoiceUrl } };
+    // ... вызов placeHold
   });
 }
 ```
 
-### `GET /api/billing/invoices/{code}` — мета инвойса
+### `GET /api/public/catalog/routes` — список маршрутов с кешированием
 
 ```ts
-// src/app/api/billing/invoices/[code]/route.ts
+// src/app/api/public/catalog/routes/route.ts
 import { NextRequest } from 'next/server';
 
-export async function GET(_req: NextRequest, { params }: { params: { code: string } }) {
-  const code = params.code.toUpperCase();
-  // TODO: fetch invoice by booking code
-  return Response.json({ invoice: { code, amount_total: 5000, currency: 'RUB', status: 'pending', due_at: new Date().toISOString() } });
-}
-```
-
-### `GET /api/billing/invoices/{code}/pdf` — Signed URL
-
-```ts
-// src/app/api/billing/invoices/[code]/pdf/route.ts
-import { NextRequest } from 'next/server';
-import { ensureInvoicePdf } from '@/services/pdf.server';
-import { getSignedReadUrl } from '@/lib/gcs.server';
-
-export async function GET(_req: NextRequest, { params }: { params: { code: string } }) {
-  const { key } = await ensureInvoicePdf(params.code);
-  const url = await getSignedReadUrl(key);
-  return Response.redirect(url, 302);
-}
-```
-
-### Ops: `POST /api/ops/bookings/{id}` — отметить «Оплата получена»
-
-```ts
-// src/app/api/ops/bookings/[id]/route.ts
-import { NextRequest } from 'next/server';
-
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id;
-  // TODO: auth (role=Operator), транзакция: invoice.status=received; booking=confirmed; capacity_confirmed+=pax; capacity_held-=pax
-  return Response.json({ ok: true, id, newStatus: 'confirmed' });
-}
-```
-
----
-
-## 🌍 I18N (минималистичный каркас) — `src/lib/i18n.ts`
-
-```ts
-export const t = (locale: 'ru'|'en', key: string, vars?: Record<string, unknown>) => {
-  const dict: Record<string, Record<'ru'|'en', string>> = {
-    'price.base': { ru: 'Базовая цена', en: 'Base price' },
-    'error.rate_limited': { ru: 'Слишком много запросов', en: 'Too many requests' },
-  };
-  const template = (dict[key] && dict[key][locale]) || key;
-  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars?.[k] ?? ''));
-};
-```
-
----
-
-## 🧪 Тесты (скелеты)
-
-**Vitest:** `tests/unit/price.test.ts`
-
-```ts
-import { describe, it, expect } from 'vitest';
-import { getQuote } from '@/services/price.server';
-
-describe('price v0', () => {
-  it('calculates base * pax', async () => {
-    const q = await getQuote({ routeId: 'r1', slotId: 's1', pax: 2, locale: 'ru' });
-    expect(q.total).toBeGreaterThan(0);
+export async function GET(req: NextRequest) {
+  const data = [/* ... */];
+  return Response.json({ routes: data }, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+    }
   });
-});
-```
-
-**Playwright:** `tests/e2e/booking.spec.ts`
-
-```ts
-import { test, expect } from '@playwright/test';
-
-test('public booking flow draft→hold→invoice', async ({ request }) => {
-  const draft = await request.post('/api/booking/draft', { data: { routeId: 'r1', slotId: 's1', pax: 2, phone: '+79990000000', locale: 'ru' } });
-  expect(draft.ok()).toBeTruthy();
-  const draftJson = await draft.json();
-
-  const hold = await request.post('/api/booking/hold', { data: { bookingDraftId: draftJson.bookingId, consent: true } });
-  expect(hold.ok()).toBeTruthy();
-  const holdJson = await hold.json();
-  expect(holdJson.invoiceUrl).toContain('/invoice/');
-});
+}
 ```
 
 ---
@@ -634,51 +391,19 @@ test('public booking flow draft→hold→invoice', async ({ request }) => {
 ## ⚙️ CI (GitHub Actions) — `.github/workflows/ci.yml`
 
 ```yaml
-name: CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-
-jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint --if-present
-      - run: pnpm run typecheck --if-present
-      - run: pnpm run test --if-present
-      - run: pnpm run build --if-present
+# ...
     env:
       NODE_ENV: test
       APP_BASE_URL: https://example.test
-      FEATURE_PUBLIC_SITE: 'true'
-      FEATURE_I18N: 'true'
-      FEATURE_PAYMENTS_ONLINE: 'false'
-      FEATURE_OPS_CONSOLE: 'true'
-      FEATURE_SEAT_SHARING: 'false'
       COOKIE_SECRET_CURRENT: test_cookie_secret_32_bytes_min________
-      DATABASE_URL: https://db.example.test
-      REDIS_URL: https://redis.example.test
+      CRON_SECRET: test_cron_secret_32_bytes_min__________
+      DATABASE_URL: postgres://test:test@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
       GCS_BUCKET: gts-mvp-media-euw4
-      GCS_SIGNED_URL_TTL_SECONDS: '1800'
-      GOOGLE_CLOUD_PROJECT: gts-project
-      GOOGLE_APPLICATION_CREDENTIALS_JSON: '{}'
-      RL_PUBLIC_DRAFT_PER_MIN: '30'
-      RL_PUBLIC_HOLD_PER_MIN: '20'
-      IDEMPOTENCY_TTL_SEC: '600'
+      # Валидный, но фейковый JSON для прохождения Zod-валидации в CI
+      GOOGLE_APPLICATION_CREDENTIALS_JSON: '{"type":"service_account","project_id":"dummy-project","private_key_id":"dummy","private_key":"dummy","client_email":"dummy@example.com","client_id":"dummy","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/dummy%40example.com"}'
+# ...
 ```
-
-> Примечание: для `DATABASE_URL`/`REDIS_URL` в CI можно подставлять заглушки, если тесты не требуют реальной БД. Для интеграционных тестов — подключить Testcontainers или in-memory адаптеры.
 
 ---
 
@@ -691,15 +416,13 @@ APP_BASE_URL=http://localhost:3000
 
 # Feature Flags
 FEATURE_PUBLIC_SITE=true
-FEATURE_I18N=true
-FEATURE_PAYMENTS_ONLINE=false
-FEATURE_OPS_CONSOLE=true
-FEATURE_SEAT_SHARING=false
+# ...
 
 # Secrets
 COOKIE_SECRET_CURRENT=change_me_to_long_random_32+_chars
 COOKIE_SECRET_PREV=
 JWT_SECRET=
+CRON_SECRET=change_me_to_a_secure_random_string_for_cron
 
 # Data Stores
 DATABASE_URL=postgres://user:pass@localhost:5432/gts
@@ -707,28 +430,6 @@ REDIS_URL=redis://localhost:6379
 
 # Google Cloud Storage
 GCS_BUCKET=gts-mvp-media-euw4
-GCS_SIGNED_URL_TTL_SECONDS=1800
-GOOGLE_CLOUD_PROJECT=gts-project
-# В CI удобно хранить как строку JSON (без файла ключа):
-GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account","project_id":"gts-project",...}
-
-# Notifications (optional)
-SMTP_URL=smtp://user:pass@mail.example.com:587
-
-# Rate Limits / Idempotency
-RL_PUBLIC_DRAFT_PER_MIN=30
-RL_PUBLIC_HOLD_PER_MIN=20
-IDEMPOTENCY_TTL_SEC=600
-```
-
----
-
-## ✅ Что дальше (минимальные TODO для прод-готовности)
-
-- Подключить реальный адаптер Redis (ioredis) для rate-limit и идемпотентности.
-- Транзакции при `placeHold` (конкурентный доступ к слоту, инкременты вместимости).
-- Рендер PDF (например, через `@react-pdf/renderer` или Puppeteer) и upload в GCS.
-- Реестр шаблонов уведомлений с предпросмотром (ops).
-- Авторизация в `/api/ops/*` (роль `Operator` из вашей Stage 1) или короткий JWT.
-- Логи/метрики (trace-id), алёрты на всплеск `hold_expired` и 5xx.
+# ...
+GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account",...}
 ```
