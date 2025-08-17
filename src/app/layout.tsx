@@ -3,7 +3,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { GoogleAnalytics } from '@/components/google-analytics';
 import { Inter, Manrope } from 'next/font/google';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { MainLayout } from '@/components/main-layout';
 
 const inter = Inter({
@@ -30,9 +29,7 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className={`${inter.variable} ${manrope.variable} font-sans antialiased`}>
         <GoogleAnalytics />
-        <SidebarProvider>
-          <MainLayout>{children}</MainLayout>
-        </SidebarProvider>
+        <MainLayout>{children}</MainLayout>
         <Toaster />
       </body>
     </html>
