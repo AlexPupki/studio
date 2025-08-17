@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 
-function HomePageContent() {
+export default function Home() {
   return (
     <div className="flex flex-1 items-center justify-center rounded-lg bg-card shadow-sm">
       <div className="text-center">
@@ -16,8 +16,4 @@ function HomePageContent() {
       </div>
     </div>
   );
-}
-
-export default function Home() {
-  return <HomePageContent />;
 }

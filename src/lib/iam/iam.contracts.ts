@@ -43,7 +43,7 @@ export type AuditEventName =
 export type AuditEvent = {
   id: string;
   ts: string; // ISO 8601
-  userId?: string | null;
+  userId?: string | null; // Может быть null для событий до аутентификации
   event: AuditEventName;
   ip?: string;
   ua?: string;
