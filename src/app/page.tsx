@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
+    <div className="flex flex-1 items-center justify-center rounded-lg bg-card shadow-sm">
       <div className="text-center">
         <h1 className="font-heading text-4xl font-bold tracking-tight text-primary md:text-6xl">
           Grand Tour Sochi
@@ -14,6 +14,6 @@ export default function Home() {
           <Button size="lg">Узнать больше</Button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
