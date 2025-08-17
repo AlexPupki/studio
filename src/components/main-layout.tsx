@@ -39,30 +39,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/services')}>
-                <Link href="/services">
-                  <Mountain />
-                  <span>Услуги</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/blog')}>
-                <Link href="/blog">
-                  <Newspaper />
-                  <span>Блог</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith('/account')}>
-                <Link href="/account">
-                  <User />
-                  <span>Личный кабинет</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
@@ -72,12 +48,6 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
                  <SidebarTrigger />
             </div>
             <div className='flex items-center gap-4'>
-                <Button variant="ghost" size="sm" asChild>
-                    <Link href="/login">
-                        <LogIn />
-                        <span>Войти</span>
-                    </Link>
-                </Button>
             </div>
         </header>
         <main className="flex flex-1 flex-col p-4">
