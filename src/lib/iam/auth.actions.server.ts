@@ -1,6 +1,5 @@
 'use server';
 
-import 'server-only';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { features } from './config';

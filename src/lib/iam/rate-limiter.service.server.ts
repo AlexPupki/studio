@@ -1,3 +1,4 @@
+'use server';
 /**
  * @fileoverview Определяет интерфейс для rate-limiter и его реализации.
  */
