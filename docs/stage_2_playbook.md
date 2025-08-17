@@ -48,6 +48,7 @@
 
 *   `slot` — `id`, `route_id`, `asset_unit_id|null`, `start_at` (UTC), `end_at` (UTC), `capacity_total`, `capacity_held`, `capacity_confirmed`, `state: planned|held|confirmed|locked_maintenance|done`.
 *   Генерация слотов по шаблонам (ежедневные/по дням недели); блокировки под обслуживание.
+*   **Constraint на уровне БД**: `CHECK (capacity_total >= capacity_held + capacity_confirmed)`.
 
 ### 1.3 Бронирование и инвойс
 
@@ -95,7 +96,7 @@
 **Booking/Billing:**
 
 *   `POST /api/booking/draft` — body: `{routeId, slotId, pax, phone, name?, locale}` → `{priceBreakdown, total, bookingCodePreview}`
-*   `POST /api/booking/hold` — `{bookingDraftId|data, consent}` → `{bookingCode, holdExpiresAt, invoiceUrl}`. **Header `Idempotency-Key` обязатеlen**.
+*   `POST /api/booking/hold` — `{bookingDraftId|data, consent}` → `{bookingCode, holdExpiresAt, invoiceUrl}`. **Header `Idempotency-Key` обязателен**.
 *   `GET /api/billing/invoices/{code}` — метаданные инвойса
 *   `GET /api/billing/invoices/{code}/pdf` — Signed URL (stream/redirect)
 
@@ -175,6 +176,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 *   **Валидация E.164** для телефонов (например, через `libphonenumber-js`).
 *   Cookies из Stage 1: `HttpOnly/Secure/SameSite=Lax`; сессии проверяются на `/ops/*` через middleware.
 *   Аудит: `BookingDrafted`, `HoldPlaced`, `HoldExpired`, `PaymentReceived`, `BookingConfirmed` и др. с `traceId`.
+*   **State Machine для бронирований**: Переходы между статусами должны валидироваться по заранее определенным правилам (`draft` -> `on_hold` | `canceled`, и т.д.).
 
 ---
 

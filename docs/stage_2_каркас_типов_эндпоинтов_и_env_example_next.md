@@ -190,7 +190,7 @@ const EnvSchema = z.object({
   // Secrets & storage
   COOKIE_SECRET_CURRENT: z.string().min(32),
   COOKIE_SECRET_PREV: z.string().min(32).optional(),
-  JWT_SECRET: z.string().min(32).optional(),
+  JWT_SECRET: z.string().min(32).optional(), // Обязателен, если FEATURE_OPS_CONSOLE=true для API
   CRON_SECRET: z.string().min(32), // Секрет для проверки вызовов от Cloud Scheduler
 
   DATABASE_URL: z.string().url(),
