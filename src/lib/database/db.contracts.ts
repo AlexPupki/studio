@@ -36,20 +36,11 @@ export type Session = {
   revokedAt?: string | null; // ISO 8601, если сессия отозвана
 };
 
-export type AuditEventName =
-  | 'login_code_requested'
-  | 'login_code_verified'
-  | 'login_code_failed'
-  | 'session_created'
-  | 'logout'
-  | 'rate_limit_triggered'
-  | 'new_user_registered';
-
 export type AuditEvent = {
   id: string;
   ts: string; // ISO 8601
   userId?: string | null; // Может быть null для событий до аутентификации
-  event: AuditEventName;
+  event: 'login_code_requested' | 'login_code_verified' | 'login_code_failed' | 'new_user_registered' | 'session_created' | 'logout' | 'rate_limit_triggered';
   ip?: string;
   ua?: string;
   meta?: Record<string, unknown>;

@@ -5,7 +5,6 @@
  * @fileoverview Этот файл отвечает за управление сессиями: создание,
  * шифрование (sealing), расшифровка (unsealing) и инвалидация.
  */
-import 'server-only';
 import { randomBytes, createCipheriv, createDecipheriv, createHmac } from 'crypto';
 import { Session, User } from '../database/db.contracts';
 import { createDbService } from '../database/db.service.server';

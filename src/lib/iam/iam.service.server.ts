@@ -5,7 +5,6 @@
  * Он инкапсулирует бизнес-логику, связанную с пользователями,
  * кодами входа и аудитом, в соответствии с playbook.
  */
-import 'server-only';
 import { createHmac, randomInt } from 'crypto';
 import { IDatabaseService, LoginCode, User } from '../database/db.contracts';
 import { createDbService } from '../database/db.service.server';
