@@ -1,3 +1,4 @@
+// src/lib/iam/session.service.server.ts
 'use server';
 
 /**
@@ -16,6 +17,11 @@ const TAG_LENGTH = 16;
 const TAG_POSITION = SALT_LENGTH + IV_LENGTH;
 const ENCRYPTED_POSITION = TAG_POSITION + TAG_LENGTH;
 
+export interface SessionServiceConfig {
+    secretKey: string;
+    cookieName: string;
+}
+
 export interface ISessionService {
   createSession(userId: string): Promise<Session>;
   sealSession(session: Session): Promise<string>;
@@ -28,13 +34,12 @@ class SessionService implements ISessionService {
   private readonly secretKey: Buffer;
   private readonly cookieName: string;
 
-  constructor(secretKey: string, cookieName: string) {
-    if (!secretKey || secretKey.length < 32) {
+  constructor(config: SessionServiceConfig) {
+    if (!config.secretKey || config.secretKey.length < 32) {
       throw new Error('SESSION_SECRET_KEY must be at least 32 characters long.');
     }
-    // FIX: Removed 'hex' encoding as the secret is a plain string, not a hex string.
-    this.secretKey = Buffer.from(secretKey);
-    this.cookieName = cookieName;
+    this.secretKey = Buffer.from(config.secretKey);
+    this.cookieName = config.cookieName;
   }
 
   async createSession(userId: string): Promise<Session> {
@@ -109,16 +114,19 @@ class SessionService implements ISessionService {
 
 let sessionServiceInstance: ISessionService | null = null;
 
-export async function createSessionService(): Promise<ISessionService> {
+export async function createSessionService(config?: SessionServiceConfig): Promise<ISessionService> {
   if (sessionServiceInstance) {
     return sessionServiceInstance;
   }
   
-  const secretKey = process.env.SESSION_SECRET_KEY;
-  if (!secretKey) throw new Error('SESSION_SECRET_KEY is not set');
+  if (!config) {
+      const secretKey = process.env.SESSION_SECRET_KEY;
+      if (!secretKey) throw new Error('SESSION_SECRET_KEY is not set');
 
-  const cookieName = process.env.COOKIE_NAME || 'gts.sid';
+      const cookieName = process.env.COOKIE_NAME || 'gts.sid';
+      config = { secretKey, cookieName };
+  }
 
-  sessionServiceInstance = new SessionService(secretKey, cookieName);
+  sessionServiceInstance = new SessionService(config);
   return sessionServiceInstance;
 }

@@ -10,8 +10,16 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookieName = process.env.COOKIE_NAME || 'gts.sid';
   const sealedSession = request.cookies.get(cookieName)?.value;
+  const secretKey = process.env.SESSION_SECRET_KEY;
 
-  const sessionService = await createSessionService();
+  if (!secretKey) {
+    console.error('SESSION_SECRET_KEY is not set. Middleware cannot run.');
+    // В случае отсутствия ключа, лучше прервать обработку, 
+    // чтобы избежать небезопасного состояния.
+    return NextResponse.next();
+  }
+
+  const sessionService = await createSessionService({ secretKey, cookieName });
   const session = sealedSession ? await sessionService.getActiveSession(sealedSession) : null;
   const isAuth = !!session;
 
