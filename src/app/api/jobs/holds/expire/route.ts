@@ -5,7 +5,7 @@ import { withApiError, ApiError } from '@/lib/server/http/errors';
 import { getEnv } from '@/lib/server/config';
 import { db } from '@/lib/server/db';
 import { bookings } from '@/lib/server/db/schema';
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, lte } from 'drizzle-orm';
 import { withPgTx } from '@/lib/server/db/tx';
 import { releaseHold } from '@/lib/server/capacity';
 import { audit } from '@/lib/server/audit';
@@ -15,6 +15,7 @@ const MAX_BATCH_SIZE = 50;
 
 /**
  * Verifies the HMAC signature of the request.
+ * This is for server-to-server communication where the body is empty.
  * @param req The NextRequest object.
  * @returns A promise that resolves if the signature is valid, and rejects otherwise.
  */
@@ -24,12 +25,11 @@ async function verifySignature(req: NextRequest): Promise<void> {
         throw new ApiError('unauthorized', 'Missing X-Cron-Signature header', 401);
     }
     
-    // In a real scenario, you'd include a timestamp in the signed payload to prevent replay attacks.
-    const body = await req.text(); // for cron jobs, body is usually empty.
+    // For cron jobs, the signature is often just based on the secret, as the body is empty.
     const secret = getEnv('CRON_SECRET');
 
     const hmac = createHmac('sha256', secret);
-    hmac.update(body);
+    hmac.update(''); // Empty body for this specific cron job
     const expectedSignature = hmac.digest('hex');
 
     if (signatureHeader !== expectedSignature) {
@@ -57,7 +57,7 @@ async function handler(req: NextRequest, traceId: string) {
     })
     .from(bookings)
     .where(and(
-      lt(bookings.holdExpiresAt, new Date()),
+      lte(bookings.holdExpiresAt, new Date()),
       eq(bookings.state, 'hold')
     ))
     .limit(MAX_BATCH_SIZE);
@@ -72,22 +72,31 @@ async function handler(req: NextRequest, traceId: string) {
 
   for (const booking of expiredBookings) {
     await withPgTx(async (tx) => {
-      await releaseHold(tx, booking.slotId, booking.qty);
-      await tx
+      // Set the state to 'cancel' with reason 'expired'
+      const [updated] = await tx
         .update(bookings)
-        .set({ state: 'cancel' })
-        .where(eq(bookings.id, booking.id));
+        .set({ state: 'cancel', cancelReason: 'expired' })
+        .where(and(
+          eq(bookings.id, booking.id),
+          eq(bookings.state, 'hold') // Double-check state inside transaction
+        ))
+        .returning({ id: bookings.id });
+      
+      // If the update was successful (i.e., the booking was still on hold)
+      if (updated) {
+        await releaseHold(tx, booking.slotId, booking.qty);
         
-      releasedCount += booking.qty;
-      canceledCount++;
+        releasedCount += booking.qty;
+        canceledCount++;
 
-      await audit({
-          traceId,
-          actor: { type: 'system', id: 'cron:expire_holds' },
-          action: 'booking.expired',
-          entity: { type: 'booking', id: booking.id },
-          data: { from: 'hold', to: 'cancel' }
-      });
+        await audit({
+            traceId,
+            actor: { type: 'system', id: 'cron:expire_holds' },
+            action: 'booking.expired',
+            entity: { type: 'booking', id: booking.id },
+            data: { from: 'hold', to: 'cancel' }
+        });
+      }
     });
   }
 

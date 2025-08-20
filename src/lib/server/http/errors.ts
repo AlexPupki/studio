@@ -63,7 +63,7 @@ export function withApiError(
 ): (req: Request) => Promise<Response> {
   return async (req: Request) => {
     const startTime = Date.now();
-    const traceId = crypto.randomUUID();
+    const traceId = req.headers.get('X-Trace-Id') || crypto.randomUUID();
     const { method, url } = req;
     const urlPath = new URL(url).pathname;
     const ip = getIp();

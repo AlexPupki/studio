@@ -11,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  index
 } from 'drizzle-orm/pg-core';
 
 export const bookingStateEnum = pgEnum('booking_state', [
@@ -19,6 +20,11 @@ export const bookingStateEnum = pgEnum('booking_state', [
   'invoice',
   'confirm',
   'cancel',
+]);
+export const bookingCancelReasonEnum = pgEnum('booking_cancel_reason', [
+    'user_request',
+    'expired',
+    'ops_request'
 ]);
 export const invoiceStatusEnum = pgEnum('invoice_status', [
   'issued',
@@ -31,6 +37,7 @@ export const entityTypeEnum = pgEnum('entity_type', [
   'invoice',
   'slot',
   'user',
+  'system',
 ]);
 export const routeStatusEnum = pgEnum('route_status', [
   'draft',
@@ -93,6 +100,7 @@ export const bookings = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     code: text('code').notNull().unique(),
     state: bookingStateEnum('state').notNull(),
+    cancelReason: bookingCancelReasonEnum('cancel_reason'),
     slotId: uuid('slot_id')
       .notNull()
       .references(() => slots.id),
@@ -106,7 +114,7 @@ export const bookings = pgTable(
   },
   (table) => {
     return {
-      holdExpireIdx: uniqueIndex('hold_expire_idx').on(table.holdExpiresAt),
+      holdExpireIdx: index('hold_expire_idx').on(table.holdExpiresAt),
     };
   }
 );

@@ -5,7 +5,7 @@ import { auditEvents } from "./db/schema";
 import type { actorTypeEnum, entityTypeEnum } from "./db/schema";
 
 interface AuditLog {
-  traceId?: string;
+  traceId: string;
   actor: {
     type: (typeof actorTypeEnum.enumValues)[number];
     id?: string;
