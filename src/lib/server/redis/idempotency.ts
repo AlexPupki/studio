@@ -24,19 +24,18 @@ interface StoredResponse {
  */
 export async function withIdempotency(
   req: NextRequest,
+  traceId: string, // traceId is passed for error responses
   handler: () => Promise<NextResponse>,
   ttlSec: number = 600
 ): Promise<NextResponse> {
   const idempotencyKey = req.headers.get(IDEMPOTENCY_HEADER);
 
   if (!idempotencyKey) {
-    // For simplicity, we could proceed without idempotency or throw an error.
-    // Let's require the key for idempotent-by-design endpoints.
-    return Promise.resolve(new ApiError(
-      'idempotency_key_missing',
+    return new ApiError(
+      'IDEMPOTENCY_KEY_REQUIRED',
       `Header '${IDEMPOTENCY_HEADER}' is required.`,
       400
-    ).toResponse());
+    ).toResponse(traceId);
   }
 
   // Create a consistent hash of the key
@@ -61,7 +60,7 @@ export async function withIdempotency(
           'request_in_progress',
           'A request with the same idempotency key is already being processed.',
           409 // Conflict
-      ).toResponse();
+      ).toResponse(traceId);
   }
 
   try {

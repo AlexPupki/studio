@@ -19,7 +19,7 @@ const InvoiceRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest, traceId: string) {
-  return withIdempotency(req, async () => {
+  return withIdempotency(req, traceId, async () => {
     assertTrustedOrigin(req);
     const body = await req.json();
     const parsed = InvoiceRequestSchema.safeParse(body);

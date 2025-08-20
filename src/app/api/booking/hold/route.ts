@@ -17,7 +17,7 @@ const HoldRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest, traceId: string) {
-  return withIdempotency(req, async () => {
+  return withIdempotency(req, traceId, async () => {
     await rateLimitByIp('booking_hold', 5, '1m');
     assertTrustedOrigin(req);
 
@@ -65,10 +65,10 @@ async function handler(req: NextRequest, traceId: string) {
           data: { from: 'draft', to: 'hold', expiresAt: holdExpiresAt }
       });
         
-      return updatedBooking;
+      return NextResponse.json(result);
     });
 
-    return NextResponse.json(result);
+    return result;
   });
 }
 

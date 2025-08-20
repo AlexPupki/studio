@@ -16,7 +16,7 @@ const ConfirmRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest, traceId: string) {
-  return withIdempotency(req, async () => {
+  return withIdempotency(req, traceId, async () => {
     assertTrustedOrigin(req);
     const body = await req.json();
     const parsed = ConfirmRequestSchema.safeParse(body);
@@ -61,10 +61,10 @@ async function handler(req: NextRequest, traceId: string) {
           data: { from: 'issued', to: 'paid' }
       });
 
-      return updatedBooking;
+      return NextResponse.json(updatedBooking);
     });
 
-    return NextResponse.json(result);
+    return result;
   });
 }
 
