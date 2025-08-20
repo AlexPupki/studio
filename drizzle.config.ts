@@ -6,7 +6,8 @@ export default defineConfig({
   schema: "./src/lib/server/db/schema.ts",
   out: "./src/lib/server/db/migrations",
   dbCredentials: {
-    url: getEnv("DATABASE_URL"),
+    // This needs to load env vars correctly for drizzle-kit
+    url: process.env.DATABASE_URL!,
   },
   verbose: true,
   strict: true,
