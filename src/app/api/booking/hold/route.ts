@@ -1,3 +1,5 @@
+'use server';
+
 import { withIdempotency } from "@/lib/server/redis/idempotency";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -65,7 +67,7 @@ async function handler(req: NextRequest, traceId: string) {
           data: { from: 'draft', to: 'hold', expiresAt: holdExpiresAt }
       });
         
-      return NextResponse.json(result);
+      return NextResponse.json(updatedBooking);
     });
 
     return result;

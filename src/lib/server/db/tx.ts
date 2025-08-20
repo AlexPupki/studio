@@ -4,7 +4,7 @@ import { PgTransaction } from 'drizzle-orm/pg-core';
 import { db } from './index';
 import { ExtractTablesWithRelations, SQL } from 'drizzle-orm';
 
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 50;
 
 /**
@@ -35,8 +35,9 @@ export async function withPgTx<T>(
       // PostgreSQL error code for serialization failure
       if (error.code === '40001') {
         if (i < MAX_RETRIES - 1) {
-          // Wait before retrying
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (i + 1)));
+          // Wait before retrying with jitter
+          const delay = RETRY_DELAY_MS * Math.pow(2, i) + Math.random() * RETRY_DELAY_MS;
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
       }

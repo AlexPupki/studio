@@ -1,3 +1,5 @@
+'use server';
+
 import { db } from "@/lib/server/db";
 import { bookings } from "@/lib/server/db/schema";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -7,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitByIp } from "@/lib/server/redis/rateLimit";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
+import { audit } from "@/lib/server/audit";
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
 
@@ -19,7 +22,7 @@ const DraftRequestSchema = z.object({
   }),
 });
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest, traceId: string) {
   await rateLimitByIp('booking_draft', 10, '1m');
   assertTrustedOrigin(req);
 
@@ -47,12 +50,24 @@ async function handler(req: NextRequest) {
       code: nanoid(),
     })
     .returning({
-      bookingId: bookings.id,
+      id: bookings.id,
       code: bookings.code,
       state: bookings.state,
     });
+  
+  await audit({
+      traceId,
+      actor: { type: 'user', id: 'TODO' }, // TODO: get from session
+      action: 'booking.drafted',
+      entity: { type: 'booking', id: newBooking.id },
+      data: { slotId, qty, customerName: customer.name }
+  });
 
-  return NextResponse.json(newBooking, { status: 201 });
+  return NextResponse.json({
+      bookingId: newBooking.id,
+      code: newBooking.code,
+      state: newBooking.state,
+  }, { status: 201 });
 }
 
 export const POST = withApiError(handler);

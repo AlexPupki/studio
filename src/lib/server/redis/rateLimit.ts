@@ -1,13 +1,13 @@
 'use server';
 import { redisClient } from '.';
-import { headers } from 'next/headers';
+import { getIp } from '../http/ip';
 import { ApiError } from '../http/errors';
 
 type TimeUnit = 's' | 'm' | 'h' | 'd';
 
 function parseDuration(duration: `${number}${TimeUnit}`): number {
     const unit = duration.slice(-1) as TimeUnit;
-    const value = parseInt(duration.slice(0, -1));
+    const value = parseInt(duration.slice(0, -1), 10);
 
     switch (unit) {
         case 's': return value;
@@ -16,19 +16,6 @@ function parseDuration(duration: `${number}${TimeUnit}`): number {
         case 'd': return value * 60 * 60 * 24;
         default: throw new Error('Invalid time unit');
     }
-}
-
-function getIp(): string {
-    const forwardedFor = headers().get('x-forwarded-for');
-    if (forwardedFor) {
-        return forwardedFor.split(',')[0].trim();
-    }
-    const realIp = headers().get('x-real-ip');
-    if (realIp) {
-        return realIp.trim();
-    }
-    // For local development or environments without these headers
-    return '127.0.0.1';
 }
 
 /**
@@ -41,6 +28,10 @@ function getIp(): string {
  */
 export async function rateLimit(identifier: string, limit: number, window: `${number}${TimeUnit}`, key?: string): Promise<void> {
     const targetKey = key || getIp();
+    if (!targetKey) {
+        // Cannot rate limit if no key is available
+        return;
+    }
     const redisKey = `rl:${identifier}:${targetKey}`;
     const windowSec = parseDuration(window);
 
@@ -48,16 +39,28 @@ export async function rateLimit(identifier: string, limit: number, window: `${nu
     const windowStart = now - windowSec * 1000;
 
     const multi = redisClient.multi();
+    // Remove timestamps outside the current window
     multi.zremrangebyscore(redisKey, 0, windowStart);
+    // Get the number of requests in the current window
     multi.zcard(redisKey);
+    // Add the current request timestamp
     multi.zadd(redisKey, now, now.toString());
+    // Set the key to expire after the window duration
     multi.expire(redisKey, windowSec);
 
-    const [, count] = await multi.exec() as [[null, number], [null, number], [null, number], [null, number]];
+    const results = await multi.exec();
     
+    // The count of requests is the result of the ZCARD command.
+    // In ioredis' multi.exec(), results is an array of [error, result] tuples.
+    const count = results?.[1]?.[1] as number | undefined ?? 0;
+
     if (count > limit) {
-        const retryAfter = Math.ceil((await redisClient.zrange(redisKey, 0, 0, 'WITHSCORES'))[1] / 1000 + windowSec - (now/1000));
-        throw new ApiError('rate_limited', 'Too many requests.', 429, { limit, remaining: 0 }, retryAfter);
+        // Find the timestamp of the oldest request to calculate Retry-After
+        const oldestRequest = await redisClient.zrange(redisKey, 0, 0, 'WITHSCORES');
+        const oldestTimestamp = oldestRequest.length > 1 ? parseFloat(oldestRequest[1]) : now;
+        const retryAfter = Math.ceil((oldestTimestamp / 1000 + windowSec) - (now / 1000));
+        
+        throw new ApiError('RATE_LIMITED', 'Too many requests.', 429, { limit, remaining: 0 }, retryAfter);
     }
 }
 
