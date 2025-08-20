@@ -10,6 +10,7 @@ export interface ApiErrorResponse {
   code: string;
   details?: any;
   traceId: string;
+  retryAfter?: number;
 }
 
 /**
@@ -19,13 +20,15 @@ export class ApiError extends Error {
   public readonly code: string;
   public readonly statusCode: number;
   public readonly details?: any;
+  public readonly retryAfter?: number;
 
-  constructor(code: string, message: string, statusCode: number, details?: any) {
+  constructor(code: string, message: string, statusCode: number, details?: any, retryAfter?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
+    this.retryAfter = retryAfter;
   }
 
   toResponse(traceId: string): NextResponse<ApiErrorResponse> {
@@ -35,7 +38,14 @@ export class ApiError extends Error {
       details: this.details,
       traceId,
     };
-    return NextResponse.json(body, { status: this.statusCode });
+    if (this.retryAfter) {
+        body.retryAfter = this.retryAfter;
+    }
+    const headers: Record<string, string> = {};
+    if (this.retryAfter) {
+        headers['Retry-After'] = this.retryAfter.toString();
+    }
+    return NextResponse.json(body, { status: this.statusCode, headers });
   }
 }
 

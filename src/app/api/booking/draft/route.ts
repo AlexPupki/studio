@@ -5,6 +5,8 @@ import { normalizePhone } from "@/lib/shared/phone.utils";
 import { customAlphabet } from 'nanoid';
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { rateLimitByIp } from "@/lib/server/redis/rateLimit";
+import { assertTrustedOrigin } from "@/lib/server/http/origin";
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
 
@@ -18,6 +20,9 @@ const DraftRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest) {
+  await rateLimitByIp('booking_draft', 10, '1m');
+  assertTrustedOrigin(req);
+
   const body = await req.json();
   const parsed = DraftRequestSchema.safeParse(body);
   if (!parsed.success) {
