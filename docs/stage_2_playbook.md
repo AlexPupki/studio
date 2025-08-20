@@ -1,6 +1,8 @@
 # Stage 2 — MVP Публичного сайта и Бронирования (Catalog → Hold → Invoice → Confirm)
 
+> **Статус**: В процессе реализации.
 > **Техническая реализация:** Детальный каркас кода, структура файлов, типы и эндпоинты для этого этапа описаны в документе [./stage_2_каркас_типов_эндпоинтов_и_env_example_next.md](./stage_2_каркас_типов_эндпоинтов_и_env_example_next.md).
+> **Соответствие Blueprint v1.2**: Этот этап напрямую реализует ключевые требования из разделов **7.1 (Individual Booking)**, **11 (Payments: OFF-Site)** и **14 (Operator Console)**.
 
 ## 0) Цели и рамки
 
@@ -36,6 +38,7 @@
 ---
 
 ## 1) Доменные модели (дельта к Stage 1)
+> **Соответствие Blueprint v1.2**: Реализует сущности из **пункта 6 (Data Model)** и **15 (CMS Content Models)**.
 
 ### 1.1 Каталог/Активы/Маршруты/Локации (i18n)
 
@@ -58,6 +61,7 @@
 *   `document` — PDF-документы (инвойсы/ваучеры) — ключ в GCS.
 
 ### 1.4 Уведомления и аудит
+> **Соответствие Blueprint v1.2**: Реализует **пункт 12 (Comms & Notifications)** и **22 (Event Catalog)**.
 
 *   `notification` — `id`, `type`, `channel`, `to`, `template_key`, `locale`, `status`, `error?`, `payload_json`.
 *   `audit_event` — расширить полями `trace_id`, `booking_id`, `user_id` для упрощения разбора инцидентов.
@@ -65,6 +69,7 @@
 ---
 
 ## 2) Ключевые потоки (UX → API → Data)
+> **Соответствие Blueprint v1.2**: Реализует флоу из **пункта 7.1 (Individual Booking)**.
 
 ### 2.1 Публичный: Каталог → Слот-пикер → Бронирование (Hold)
 
@@ -86,6 +91,7 @@
 ---
 
 ## 3) API (минимальный слой, idempotency)
+> **Соответствие Blueprint v1.2**: Реализует эндпоинты из **пункта 10 (API Layer)**.
 
 **Public (read/flows):**
 
@@ -117,6 +123,7 @@
 ---
 
 ## 4) Ценообразование v0
+> **Соответствие Blueprint v1.2**: Реализует базовые правила из **пункта 5.4 (Pricing & Offers)**.
 
 *   База: `base_price_minor_units` (int) на `route`.
 *   Корректировки: `+/- value` по DOW, time range, дата-диапазон (праздники), `pax`. **Все расчёты в копейках/центах во избежание ошибок с плавающей точкой.**
@@ -126,6 +133,7 @@
 ---
 
 ## 5) Инвойсы и PDF
+> **Соответствие Blueprint v1.2**: Реализует **пункт 5.6 (Billing Off-site)**.
 
 *   Рендер PDF на сервере (через `@react-pdf/renderer` или аналогичный легковесный инструмент), а не Puppeteer.
 *   Хранение в GCS (bucket из Architecture), приватно; выдача Signed URL v4, TTL 15–30 мин.
@@ -135,6 +143,7 @@
 ---
 
 ## 6) Уведомления (адаптеры)
+> **Соответствие Blueprint v1.2**: Реализует **пункт 12 (Comms & Notifications)** и **18 (Notifications Catalog)**.
 
 Интерфейс `NotificationProvider`:
 
@@ -149,6 +158,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ---
 
 ## 7) Мини-консоль оператора (ops.gts.ru / раздел в админке)
+> **Соответствие Blueprint v1.2**: Реализует **пункт 14 (Operator Console)**.
 
 *   **Доступ строго по роли `Operator`**.
 *   **Bookings Board:** фильтры по дате/статусу/маршруту, действия: «Оплата получена», «Отменить».
@@ -161,6 +171,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ---
 
 ## 8) I18N/SEO/Доступность
+> **Соответствие Blueprint v1.2**: Реализует **пункт 4 (Internationalization)** и **16 (SEO)**.
 
 *   **Locales:** `ru` (default), `en`.
 *   Приём `Accept-Language` и `?lang=`.
@@ -170,6 +181,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ---
 
 ## 9) Безопасность/Политики
+> **Соответствие Blueprint v1.2**: Реализует **пункт 12 (Security & Compliance)**.
 
 *   **Idempotency на базе Redis** на критических POST (`draft/hold`).
 *   **Rate-limits (per IP/phone) на базе Redis** на `draft/hold`.
@@ -181,6 +193,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ---
 
 ## 10) Наблюдаемость/логи/метрики
+> **Соответствие Blueprint v1.2**: Реализует **пункт 13 (Observability)** и **23 (Non-Functional)**.
 
 *   Логи структурно (`trace_id` пробрасывается через все вызовы).
 *   Техметрики: p95 API, ошибки, глубина очереди (если есть), time to first invoice PDF.
@@ -190,6 +203,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ---
 
 ## 11) Тест-план
+> **Соответствие Blueprint v1.2**: Реализует **пункт 26 (Testing & Go-Live)**.
 
 *   **Unit:** прайс-правила (с minor units), генератор слотов, расчёт capacity, idempotency/rate-limit store.
 *   **Интеграция:** `draft/hold` с **конкурентным доступом** (две параллельные попытки на один слот), проверка транзакционности.
@@ -201,51 +215,75 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ## 12) Схемы/Контракты (TypeScript, кратко)
 
 ```ts
-// catalog
+// src/domain/types.ts
+export type Locale = 'ru' | 'en';
+
 export type Route = {
-  id: string; slug: string; // канонический slug
-  title_i18n: Record<'ru'|'en', string>;
-  intro_i18n?: Record<'ru'|'en', string>;
-  duration_min: number; capacity: number;
-  meeting_instructions_i18n?: Record<'ru'|'en', string>;
-  gallery?: string[]; status: 'active'|'inactive';
+  id: string;
+  slug: string; // Каноничный, непереводимый
+  title_i18n: Record<Locale, string>;
+  intro_i18n?: Record<Locale, string>;
+  duration_min: number;
+  capacity: number;
+  meeting_instructions_i18n?: Record<Locale, string>;
+  gallery?: string[];
+  status: 'active' | 'inactive';
 };
 
+export type SlotState = 'planned' | 'held' | 'confirmed' | 'locked_maintenance' | 'done';
 export type Slot = {
-  id: string; route_id: string; asset_unit_id?: string|null;
-  start_at: string; end_at: string; // UTC ISO
-  capacity_total: number; capacity_held: number; capacity_confirmed: number;
-  state: 'planned'|'held'|'confirmed'|'locked_maintenance'|'done';
+  id: string;
+  route_id: string;
+  asset_unit_id?: string | null;
+  start_at: string; // ISO, UTC
+  end_at: string;   // ISO, UTC
+  capacity_total: number;
+  capacity_held: number;
+  capacity_confirmed: number;
+  state: SlotState;
 };
 
+export type PriceValue = { kind: 'abs' | 'percent'; amount: number; per: 'total' | 'per_pax' };
 export type PriceRule = {
-  id: string; scope: 'route'|'asset'|'date_range'|'dow'|'time_range'|'pax';
+  id: string;
+  scope: 'route' | 'asset' | 'date_range' | 'dow' | 'time_range' | 'pax';
   condition: Record<string, unknown>;
-  value: { kind: 'abs'|'percent'; amount: number; per: 'total'|'per_pax' };
-  priority: number; valid_from?: string; valid_to?: string; // UTC ISO
-  label_i18n?: Record<'ru'|'en', string>;
+  value: PriceValue;
+  priority: number;
+  valid_from?: string; // ISO, UTC
+  valid_to?: string;   // ISO, UTC
+  label_i18n?: Record<Locale, string>;
 };
 
-// booking
-export type BookingState = 'draft'|'on_hold'|'confirmed'|'canceled';
+export type BookingState = 'draft' | 'on_hold' | 'confirmed' | 'canceled';
 export type Booking = {
-  id: string; code: string; state: BookingState;
+  id: string;
+  code: string; // Уникальный, base32, 8 символов
+  state: BookingState;
   client_phone: string; // E.164
-  client_name?: string; locale: 'ru'|'en';
-  slot_id: string; pax_count: number;
-  price_total_minor_units: number; // Цена в копейках/центах
+  client_name?: string;
+  locale: Locale;
+  slot_id: string;
+  pax_count: number;
+  price_total_minor_units: number; // В копейках/центах
   price_breakdown_json: unknown;
-  hold_expires_at?: string; // UTC ISO
+  hold_expires_at?: string; // ISO, UTC
   cancel_reason?: string;
-  created_at: string; updated_at: string; // UTC ISO
+  created_at: string; // ISO, UTC
+  updated_at: string; // ISO, UTC
 };
 
+export type InvoiceStatus = 'pending' | 'received' | 'refunded';
 export type Invoice = {
-  id: string; booking_id: string; number: string;
-  amount_total_minor_units: number; currency: 'RUB'|'EUR'|'USD';
-  status: 'pending'|'received'|'refunded';
-  due_at: string; // UTC ISO
-  pdf_key?: string; raw_payload_json?: unknown;
+  id: string;
+  booking_id: string;
+  number: string; // INV-YYYYMM-####
+  amount_total_minor_units: number;
+  currency: 'RUB' | 'EUR' | 'USD';
+  status: InvoiceStatus;
+  due_at: string;   // ISO, UTC
+  pdf_key?: string; // путь в GCS
+  raw_payload_json?: unknown;
 };
 ```
 
@@ -297,9 +335,12 @@ export type Invoice = {
 
 ---
 
-## 17) Вопросы для финализации
+## 17) Вопросы для финализации (из аудита)
 
 *   **Политики hold-TTL:** единая для всех или настраиваемая per-route/per-product? Сейчас в тексте «2 часа» — стоит параметризовать (и сократить TTL для «сегодня»).
 *   **Нумерация инвойсов:** локально уникальная по месяцу (`INV-YYYYMM-####`) или глобальная? Это влияет на конкуренцию при генерации номера.
 *   **Storage схемы i18n:** будут ли локализованные **slug’и** или только поля? Для SEO лучше один канонический slug + `hreflang`.
 *   **Уведомления:** какие каналы реально запускаете на Stage 2 (email/SMS/WA)? От этого зависят ретраи/DLQ.
+*   **Concurrency model:** Как планируется обрабатывать высокую нагрузку при бронировании популярных слотов (кроме FOR UPDATE)?
+*   **Data retention:** Какие политики хранения для audit_event, expired bookings?
+
