@@ -33,6 +33,7 @@ const EnvSchema = z.object({
     PEPPER: z.string().min(16, "PEPPER must be at least 16 characters long").default('default-pepper-for-hashing-16-chars'),
     COOKIE_NAME: z.string().default('gts_session'),
     SESSION_TTL_DAYS: z.string().default('30'),
+    CRON_SECRET: z.string().min(32).default('default-cron-secret-for-development-32-chars-long'),
 });
 
 const parsedEnv = EnvSchema.safeParse(process.env);
