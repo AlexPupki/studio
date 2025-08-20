@@ -1,6 +1,8 @@
 // This file is safe to import on the client and server.
 // It should not contain any server-side dependencies.
 
+export type UserRole = "customer" | "staff" | "editor" | "ops.viewer" | "ops.editor" | "admin";
+
 export interface User {
   id: string;
   phoneE164: string;
@@ -8,7 +10,7 @@ export interface User {
   lastLoginAt: string;
   status: 'active' | 'blocked';
   preferredLanguage: 'ru' | 'en';
-  roles: string[]; // e.g., ['customer', 'ops']
+  roles: UserRole[]; // e.g., ['customer', 'ops']
 }
 
 export interface LoginCode {

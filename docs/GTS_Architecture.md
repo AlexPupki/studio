@@ -1,5 +1,5 @@
 # Архитектура Платформы "Grand Tour Sochi"
-**Версия: 1.1.0**
+**Версия: 1.2.0**
 
 Этот документ — главный источник правды об архитектуре проекта. Он объединяет ключевые решения, правила и гайдлайны.
 
@@ -17,6 +17,7 @@
 - **UI**: React, ShadCN, Tailwind CSS
 - **AI**: Genkit (Google AI)
 - **Хостинг**: Firebase App Hosting / Google Cloud Run
+- **Аутентификация**: **Firebase Auth** (для операторов), кастомные сессии (для клиентов).
 - **База Данных**: **PostgreSQL** (основная), **Redis** (кэш, очереди, rate limits). (См. [ADR-001](./01_architecture/ADR-001-database-selection.md))
 - **Хранилище Файлов**: **Google Cloud Storage (GCS)**. (См. [ADR-002](./01_architecture/ADR-002-storage-selection.md))
 - **CI/CD**: GitHub Actions или Cloud Build
