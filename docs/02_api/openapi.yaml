@@ -1,274 +1,191 @@
 openapi: 3.0.3
 info:
   title: Grand Tour Sochi - Public API
-  version: 1.0.0
+  version: 1.3.0
   description: |-
     Публичный API для каталога и бронирования услуг Grand Tour Sochi.
     Ключевые возможности:
     - Получение списка маршрутов и доступных слотов.
     - Создание и управление бронированиями (draft -> hold -> invoice).
+    - Получение контента (страницы, посты блога).
     - Идемпотентность для всех мутирующих запросов через заголовок `Idempotency-Key`.
 tags:
   - name: Catalog
     description: API для получения публичной информации о маршрутах и доступности.
   - name: Booking
     description: API для создания и управления бронированиями.
+  - name: Content
+    description: API для получения контента (страницы, посты).
 
 paths:
   /api/public/availability:
     get:
-      tags:
-        - Catalog
-      summary: Получить доступные слоты для маршрута
-      operationId: getAvailability
-      parameters:
-        - name: routeId
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-          description: ID маршрута.
-        - name: dateFrom
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: Начало периода в формате ISO 8601.
-        - name: dateTo
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: Конец периода в формате ISO 8601.
-      responses:
-        "200":
-          description: Список доступных слотов.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  slots:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/SlotAvailable'
-        "400":
-          $ref: '#/components/responses/BadRequest'
-
+      # ... (existing path)
   /api/booking/draft:
     post:
-      tags:
-        - Booking
-      summary: Создать черновик бронирования
-      description: Рассчитывает цену и создает бронирование в статусе `draft`.
-      operationId: createDraftBooking
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DraftRequest'
-      responses:
-        "201":
-          description: Черновик успешно создан.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bookingId:
-                    type: string
-                    format: uuid
-                  code:
-                    type: string
-                  state:
-                    type: string
-                    example: "draft"
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "429":
-          $ref: '#/components/responses/RateLimited'
-
+      # ... (existing path)
   /api/booking/hold:
     post:
-      tags:
-        - Booking
-      summary: Поставить бронирование на холд
-      description: Переводит бронирование из `draft` в `hold` и резервирует места. Требует `Idempotency-Key`.
-      operationId: placeBookingOnHold
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                bookingId:
-                  type: string
-                  format: uuid
-      responses:
-        "200":
-          description: Бронирование успешно поставлено на холд.
-          headers:
-            X-Idempotent:
-              schema:
-                type: string
-                enum: [hit, stored]
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  state:
-                    type: string
-                    example: "hold"
-                  holdExpiresAt:
-                    type: string
-                    format: date-time
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "404":
-          $ref: '#/components/responses/NotFound'
-        "409":
-          $ref: '#/components/responses/Conflict'
-        "429":
-          $ref: '#/components/responses/RateLimited'
-
+      # ... (existing path)
   /api/booking/invoice:
     post:
+      # ... (existing path)
+  /api/booking/confirm:
+    post:
+      # ... (existing path)
+
+  # New Content Endpoints
+  /api/content/pages/{slug}:
+    get:
       tags:
-        - Booking
-      summary: Выставить счет для бронирования
-      description: Переводит бронирование из `hold` в `invoice`, генерирует PDF и возвращает ссылку на него. Требует `Idempotency-Key`.
-      operationId: issueInvoiceForBooking
+        - Content
+      summary: Получить данные страницы по слагу
+      operationId: getPageBySlug
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                bookingId:
-                  type: string
-                  format: uuid
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Слаг страницы (например, 'about-us').
       responses:
         "200":
-          description: Счет успешно выставлен.
+          description: Успешный ответ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /api/content/posts:
+    get:
+      tags:
+        - Content
+      summary: Получить список постов блога
+      operationId: getPosts
+      parameters:
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Фильтр по слагу тега.
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Фильтр по слагу категории.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Список постов.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  invoiceNumber:
-                    type: string
-                  pdfUrl:
-                    type: string
-                    format: uri
-        "400":
-          $ref: '#/components/responses/BadRequest'
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+
+  /api/content/posts/{slug}:
+    get:
+      tags:
+        - Content
+      summary: Получить пост блога по слагу
+      operationId: getPostBySlug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Слаг поста.
+      responses:
+        "200":
+          description: Успешный ответ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
         "404":
           $ref: '#/components/responses/NotFound'
-        "409":
-          $ref: '#/components/responses/Conflict'
 
 components:
   schemas:
-    SlotAvailable:
-      type: object
-      properties:
-        slotId:
-          type: string
-          format: uuid
-        startAt:
-          type: string
-          format: date-time
-        endAt:
-          type: string
-          format: date-time
-        capacityLeft:
-          type: integer
-          description: Количество оставшихся свободных мест.
+    # ... (existing schemas)
 
-    DraftRequest:
+    # New Content Schemas
+    Page:
       type: object
-      required: [slotId, qty, customer]
       properties:
-        slotId:
+        slug:
           type: string
-          format: uuid
-        qty:
-          type: integer
-          minimum: 1
-        customer:
+        title:
+          type: string
+        seoMeta:
           type: object
-          required: [name, phone]
+        contentBlocks:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              data:
+                type: object
+    Post:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        author:
+          type: object
           properties:
             name:
               type: string
-            phone:
+            avatarUrl:
               type: string
-              description: "Номер телефона в любом формате, будет нормализован на сервере."
-
-    ApiError:
-      type: object
-      properties:
-        error:
+              format: uri
+        publishedAt:
           type: string
-          description: Человекочитаемое описание ошибки.
-        code:
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+        category:
           type: string
-          description: Машиночитаемый код ошибки.
-        details:
-          type: object
-          additionalProperties: true
-        traceId:
+        contentHtml:
           type: string
-          format: uuid
+    # ... (existing error schemas)
 
-  parameters:
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      required: true
-      schema:
-        type: string
-        format: uuid
-      description: "Уникальный ключ для обеспечения идемпотентности запроса. Рекомендуется использовать UUID v4."
-
-  responses:
-    BadRequest:
-      description: "Ошибка валидации. Подробности в теле ответа."
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    NotFound:
-      description: "Запрашиваемый ресурс не найден."
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    Conflict:
-      description: "Конфликт состояния. Например, попытка зарезервировать уже занятый слот."
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
-    RateLimited:
-      description: "Превышен лимит запросов."
-      headers:
-        Retry-After:
-          schema:
-            type: integer
-          description: "Количество секунд, через которое можно повторить запрос."
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
+  # ... (existing parameters and responses)

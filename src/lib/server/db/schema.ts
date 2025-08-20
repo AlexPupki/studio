@@ -6,13 +6,16 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
   uniqueIndex,
   uuid,
-  index
+  index,
 } from 'drizzle-orm/pg-core';
+
+// --- ENUMS ---
 
 export const bookingStateEnum = pgEnum('booking_state', [
   'draft',
@@ -22,9 +25,9 @@ export const bookingStateEnum = pgEnum('booking_state', [
   'cancel',
 ]);
 export const bookingCancelReasonEnum = pgEnum('booking_cancel_reason', [
-    'user_request',
-    'expired',
-    'ops_request'
+  'user_request',
+  'expired',
+  'ops_request',
 ]);
 export const invoiceStatusEnum = pgEnum('invoice_status', [
   'issued',
@@ -39,6 +42,9 @@ export const entityTypeEnum = pgEnum('entity_type', [
   'user',
   'system',
   'page',
+  'post',
+  'category',
+  'tag',
 ]);
 export const routeStatusEnum = pgEnum('route_status', [
   'draft',
@@ -46,53 +52,89 @@ export const routeStatusEnum = pgEnum('route_status', [
   'archived',
 ]);
 export const pageStatusEnum = pgEnum('page_status', [
+  'draft',
+  'published',
+  'archived',
+]);
+export const postStatusEnum = pgEnum('post_status', [
     'draft',
+    'scheduled',
     'published',
-    'archived'
+    'archived',
 ]);
 
 
+// --- TABLES ---
+
 export const pages = pgTable('pages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: text('slug').notNull().unique(),
+  status: pageStatusEnum('status').default('draft').notNull(),
+  title: text('title').notNull(),
+  contentBlocks: jsonb('content_blocks').$type<any[]>(),
+  seoMeta: jsonb('seo_meta').$type<Record<string, string>>(),
+  authorId: text('author_id'), // Assuming author is a user ID (string)
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export const pageVersions = pgTable('page_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  pageId: uuid('page_id')
+    .notNull()
+    .references(() => pages.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull(),
+  contentBlocks: jsonb('content_blocks').$type<any[]>(),
+  authorId: text('author_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const categories = pgTable('categories', {
     id: uuid('id').primaryKey().defaultRandom(),
     slug: text('slug').notNull().unique(),
-    status: pageStatusEnum('status').default('draft').notNull(),
+    name: text('name').notNull(),
+});
+
+export const tags = pgTable('tags', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+});
+
+export const posts = pgTable('posts', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: text('slug').notNull().unique(),
     title: text('title').notNull(),
-    contentBlocks: jsonb('content_blocks').$type<any[]>(),
-    seoMeta: jsonb('seo_meta').$type<Record<string, string>>(),
-    authorId: text('author_id'), // Assuming author is a user ID (string)
+    content: text('content'),
+    excerpt: text('excerpt'),
+    coverImageUrl: text('cover_image_url'),
+    status: postStatusEnum('status').default('draft').notNull(),
+    authorId: text('author_id'), // Assuming a simple string ID for now
+    categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-export const pageVersions = pgTable('page_versions', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
-    version: integer('version').notNull(),
-    contentBlocks: jsonb('content_blocks').$type<any[]>(),
-    authorId: text('author_id'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
-
+export const postsToTags = pgTable('posts_to_tags', {
+    postId: uuid('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
+    tagId: uuid('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
+  }, (t) => ({
+    pk: primaryKey({ columns: [t.postId, t.tagId] }),
+  })
+);
 
 export const routes = pgTable('routes', {
   id: uuid('id').primaryKey().defaultRandom(),
   slug: text('slug').notNull().unique(),
   status: routeStatusEnum('status').default('draft').notNull(),
-
-  // SEO and i18n content
-  title: jsonb('title').$type<Record<string, string>>().notNull(), // e.g. { en: "Sea Trip", ru: "Морская прогулка" }
+  title: jsonb('title').$type<Record<string, string>>().notNull(),
   description: jsonb('description').$type<Record<string, string>>(),
   meetingPoint: jsonb('meeting_point').$type<Record<string, string>>(),
-
-  // Core properties
   durationMinutes: integer('duration_minutes').notNull(),
   basePriceMinor: bigint('base_price_minor', { mode: 'number' }).notNull(),
-
-  // Media content (keys to files in GCS)
   gallery: text('gallery').array(),
-
-  // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
