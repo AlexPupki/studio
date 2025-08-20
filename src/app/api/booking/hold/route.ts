@@ -10,12 +10,13 @@ import { addMinutes } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { rateLimitByIp } from "@/lib/server/redis/rateLimit";
+import { audit } from "@/lib/server/audit";
 
 const HoldRequestSchema = z.object({
   bookingId: z.string().uuid(),
 });
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, async () => {
     await rateLimitByIp('booking_hold', 5, '1m');
     assertTrustedOrigin(req);
@@ -44,7 +45,7 @@ async function handler(req: NextRequest) {
         throw new ApiError("conflict", "Booking is not in draft state", 409);
       }
 
-      await holdCapacity(booking.slotId, booking.qty);
+      await holdCapacity(tx, booking.slotId, booking.qty);
 
       const holdExpiresAt = addMinutes(new Date(), 30);
       const [updatedBooking] = await tx
@@ -55,6 +56,15 @@ async function handler(req: NextRequest) {
           state: bookings.state,
           holdExpiresAt: bookings.holdExpiresAt,
         });
+
+      await audit({
+          traceId,
+          actor: { type: 'user', id: 'TODO' }, // TODO: get from session
+          action: 'booking.placed_on_hold',
+          entity: { type: 'booking', id: bookingId },
+          data: { from: 'draft', to: 'hold', expiresAt: holdExpiresAt }
+      });
+        
       return updatedBooking;
     });
 

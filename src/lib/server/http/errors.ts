@@ -1,6 +1,9 @@
 'use server';
 
 import { NextResponse } from 'next/server';
+import { db } from '../db';
+import { requestLogs } from '../db/schema';
+import { getIp } from '../http/ip';
 
 /**
  * A standard format for API errors.
@@ -58,35 +61,50 @@ export function withApiError(
   handler: (req: Request, traceId: string) => Promise<Response>
 ): (req: Request) => Promise<Response> {
   return async (req: Request) => {
-    // Generate a unique trace ID for each request.
+    const startTime = Date.now();
     const traceId = crypto.randomUUID();
     const { method, url } = req;
     const urlPath = new URL(url).pathname;
-
-    console.log(`[${traceId}] ==> ${method} ${urlPath}`);
+    const ip = getIp();
+    let response: Response;
+    let errorCode: string | undefined;
 
     try {
-      const response = await handler(req, traceId);
-      console.log(`[${traceId}] <== ${response.status} ${response.statusText}`);
+      response = await handler(req, traceId);
+      console.log(`[${traceId}] <== ${method} ${urlPath} ${response.status} ${response.statusText}`);
       return response;
     } catch (error) {
       let apiError: ApiError;
-
       if (error instanceof ApiError) {
         apiError = error;
       } else if (error instanceof Error) {
-        // Generic internal server error
         apiError = new ApiError('internal_server_error', 'An unexpected error occurred.', 500, {
           originalError: error.message,
         });
       } else {
-        // Handle non-Error objects being thrown
         apiError = new ApiError('unknown_error', 'An unknown error occurred.', 500);
       }
-
-      console.error(`[${traceId}] <== ${apiError.statusCode} ERROR: ${apiError.message}`, apiError.details || '');
       
-      return apiError.toResponse(traceId);
+      errorCode = apiError.code;
+      console.error(`[${traceId}] <== ${method} ${urlPath} ${apiError.statusCode} ERROR: ${apiError.message}`, apiError.details || '');
+      
+      response = apiError.toResponse(traceId);
+      return response;
+    } finally {
+        const durationMs = Date.now() - startTime;
+        // Fire-and-forget the log writing
+        db.insert(requestLogs).values({
+            traceId,
+            method,
+            path: urlPath,
+            ip,
+            status: response!.status,
+            durationMs,
+            errorCode,
+            // TODO: Add userId and role once auth is integrated
+        }).catch(err => {
+            console.error(`[${traceId}] Failed to write request log:`, err);
+        });
     }
   };
 }

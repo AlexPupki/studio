@@ -10,6 +10,7 @@ import { generateAndUploadPdf } from "@/lib/server/pdf";
 import { generateDownloadUrl } from "@/lib/server/gcs";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { audit } from "@/lib/server/audit";
 
 const nanoid = customAlphabet('0123456789', 6);
 
@@ -17,7 +18,7 @@ const InvoiceRequestSchema = z.object({
   bookingId: z.string().uuid(),
 });
 
-async function handler(req: NextRequest) {
+async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, async () => {
     assertTrustedOrigin(req);
     const body = await req.json();
@@ -62,6 +63,14 @@ async function handler(req: NextRequest) {
         .returning();
 
       await tx.update(bookings).set({ state: 'invoice' }).where(eq(bookings.id, bookingId));
+
+      await audit({
+          traceId,
+          actor: { type: 'user', id: 'TODO' }, // TODO: get from session
+          action: 'invoice.issued',
+          entity: { type: 'invoice', id: newInvoice.id },
+          data: { bookingId, number: newInvoice.number, amount: newInvoice.amountMinor }
+      });
 
       const pdfUrl = await generateDownloadUrl(pdfPath);
       return { invoiceNumber: newInvoice.number, pdfUrl };

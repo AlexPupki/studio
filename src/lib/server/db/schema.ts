@@ -12,10 +12,15 @@ import {
   bigint,
   char,
   unique,
+  jsonb,
+  smallint,
 } from "drizzle-orm/pg-core";
 
 export const bookingStateEnum = pgEnum("booking_state", ['draft', 'hold', 'invoice', 'confirm', 'cancel']);
 export const invoiceStatusEnum = pgEnum('invoice_status', ['issued', 'paid', 'void']);
+export const actorTypeEnum = pgEnum('actor_type', ['system', 'user', 'ops']);
+export const entityTypeEnum = pgEnum('entity_type', ['booking', 'invoice', 'slot', 'user']);
+
 
 export const routes = pgTable("routes", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -65,4 +70,30 @@ export const invoices = pgTable("invoices", {
     pdfPath: text('pdf_path'),
     issuedAt: timestamp('issued_at', { withTimezone: true }).defaultNow(),
     paidAt: timestamp('paid_at', { withTimezone: true }),
+});
+
+export const requestLogs = pgTable("request_logs", {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ts: timestamp('ts', { withTimezone: true }).defaultNow().notNull(),
+    traceId: uuid('trace_id').notNull(),
+    userId: text('user_id'),
+    role: text('role'),
+    method: text('method').notNull(),
+    path: text('path').notNull(),
+    ip: text('ip'),
+    status: smallint('status').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    errorCode: text('error_code'),
+});
+
+export const auditEvents = pgTable("audit_events", {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ts: timestamp('ts', { withTimezone: true }).defaultNow().notNull(),
+  traceId: uuid('trace_id'),
+  actorType: actorTypeEnum('actor_type').notNull(),
+  actorId: text('actor_id'),
+  action: text('action').notNull(),
+  entityType: entityTypeEnum('entity_type').notNull(),
+  entityId: text('entity_id'),
+  data: jsonb('data'),
 });
