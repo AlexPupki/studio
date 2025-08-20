@@ -1,3 +1,4 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,13 +19,14 @@ interface StoredResponse {
  * It uses the `Idempotency-Key` header to identify unique requests.
  *
  * @param req The NextRequest object.
+ * @param traceId The trace ID for the request.
  * @param handler The actual API logic to be executed.
  * @param ttlSec The time-to-live for the idempotency key in seconds. Defaults to 10 minutes (600).
  * @returns A NextResponse object.
  */
 export async function withIdempotency(
   req: NextRequest,
-  traceId: string, // traceId is passed for error responses
+  traceId: string,
   handler: () => Promise<NextResponse>,
   ttlSec: number = 600
 ): Promise<NextResponse> {
@@ -67,7 +69,7 @@ export async function withIdempotency(
     const response = await handler();
 
     // Store only successful (2xx) or conflict (409) responses
-    if (response.status >= 200 && response.status < 300 || response.status === 409) {
+    if ((response.status >= 200 && response.status < 300) || response.status === 409) {
       const responseBody = await response.text();
       const responseHeaders: Record<string, string> = {};
       response.headers.forEach((value, key) => {

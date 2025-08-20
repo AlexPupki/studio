@@ -1,7 +1,8 @@
+
 openapi: 3.0.3
 info:
   title: Grand Tour Sochi - Public API
-  version: 1.1.0
+  version: 1.2.0
   description: |-
     Публичный API для каталога и бронирования услуг Grand Tour Sochi.
     Ключевые возможности:
@@ -178,6 +179,46 @@ paths:
         "409":
           $ref: '#/components/responses/Conflict'
 
+  /api/booking/confirm:
+    post:
+      tags:
+        - Booking
+      summary: Подтвердить бронирование (оплата получена)
+      description: Переводит бронирование из `invoice` в `confirm`. Вызывается оператором. Требует `Idempotency-Key`.
+      operationId: confirmBooking
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookingId:
+                  type: string
+                  format: uuid
+                paymentRef:
+                  type: string
+                  description: "Ссылка или номер подтверждения офлайн-оплаты."
+      responses:
+        "200":
+          description: Бронирование успешно подтверждено.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: string
+                    example: "confirm"
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "409":
+          $ref: '#/components/responses/Conflict'
+
 components:
   schemas:
     SlotAvailable:
@@ -244,11 +285,15 @@ components:
 
   responses:
     BadRequest:
-      description: "Ошибка валидации. Подробности в теле ответа."
+      description: "Ошибка валидации или отсутствует обязательный заголовок, например `Idempotency-Key`."
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
+            properties:
+              code:
+                type: string
+                example: "IDEMPOTENCY_KEY_REQUIRED"
     NotFound:
       description: "Запрашиваемый ресурс не найден."
       content:

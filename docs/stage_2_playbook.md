@@ -1,5 +1,6 @@
+
 # Stage 2 — MVP Публичного сайта и Бронирования (Catalog → Hold → Invoice → Confirm)
-**Версия: 1.1.0**
+**Версия: 1.2.0**
 
 > **Статус**: Завершено.
 > **Техническая реализация:** Детальный каркас кода, структура файлов, типы и эндпоинты для этого этапа описаны в документе [./stage_2_каркас_типов_эндпоинтов_и_env_example_next.md](./stage_2_каркас_типов_эндпоинтов_и_env_example_next.md).
@@ -18,7 +19,7 @@
 *   [x] Уведомления (WA/SMS/email) через адаптер (stub → реальный провайдер позже).
 *   [x] **Защищённая** мини-консоль оператора (список/борд бронирований, календарь слотов v0, кнопка «Оплата получена»).
 *   [x] i18n RU/EN (минимум) для UI/уведомлений/PDF/SEO.
-*   [x] **Production-grade** реализация `Idempotency` и `Rate-limiting` на базе **Redis**.
+*   [x] **Production-grade** реализация `Idempotency` и `Rate-limiting` на базе **Redis**. **[ИЗМЕНЕНО]** `Idempotency-Key` стал обязательным заголовком для всех мутирующих эндпоинтов.
 *   [x] **Cron-задача** для обработки истекших holds.
 
 **Вне Scope (перенос):**
@@ -43,29 +44,29 @@
 
 ### 1.1 Каталог/Активы/Маршруты/Локации (i18n)
 
-*   `route` — `id`, `slug` (канонический, непереводимый), `title_i18n`, `intro_i18n`, `duration_min`, `capacity`, `min_age`, `meeting_instructions_i18n`, `gallery[]`, `status`.
-*   `asset_type` / `asset_unit` — базовая связка для вместимости/фото/статуса.
+*   `route` — `id`, `slug` (канонический, непереводимый), `title_i18n`, `intro_i18n`, `duration_min`, `capacity`, `min_age`, `meeting_instructions_i18n`, `gallery[]`, `status`. **[РЕАЛИЗОВАНО]**
+*   `asset_type` / `asset_unit` — базовая связка для вместимости/фото/статуса. **[РЕАЛИЗОВАНО]**
 *   `location` — `id`, `title_i18n`, `coords`, `meeting_i18n`.
-*   `price_rule` (база + простые корректировки): `scope(route|asset|date_range|dow|time_range)`, `condition`, `value_minor_units` (int), `priority`, `valid_from/to`, `label_i18n`.
+*   `price_rule` (база + простые корректировки): `scope(route|asset|date_range|dow|time_range|pax)`, `condition`, `value_minor_units` (int), `priority`, `valid_from/to`, `label_i18n`.
 
 ### 1.2 Слоты/Календарь
 
-*   `slot` — `id`, `route_id`, `asset_unit_id|null`, `start_at` (UTC), `end_at` (UTC), `capacity_total`, `capacity_held`, `capacity_confirmed`, `state: planned|held|confirmed|locked_maintenance|done`.
+*   `slot` — `id`, `route_id`, `asset_unit_id|null`, `start_at` (UTC), `end_at` (UTC), `capacity_total`, `capacity_held`, `capacity_confirmed`, `state: planned|held|confirmed|locked_maintenance|done`. **[РЕАЛИЗОВАНО]**
 *   Генерация слотов по шаблонам (ежедневные/по дням недели); блокировки под обслуживание.
-*   **Constraint на уровне БД**: `CHECK (capacity_total >= capacity_held + capacity_confirmed)`.
+*   **Constraint на уровне БД**: `CHECK (capacity_total >= capacity_held + capacity_confirmed)`. **[РЕАЛИЗОВАНО]**
 
 ### 1.3 Бронирование и инвойс
 
-*   `booking` — `id`, `code` (уникальный, base32), `state: draft|on_hold|confirmed|canceled`, `client_phone` (E.164), `client_name?`, `slot_id`, `pax_count`, `price_total_minor_units`, `price_breakdown_json`, `hold_expires_at` (UTC), `cancel_reason?`, timestamps.
+*   `booking` — `id`, `code` (уникальный, base32), `state: draft|on_hold|confirmed|canceled`, `client_phone` (E.164), `client_name?`, `slot_id`, `pax_count`, `price_total_minor_units`, `price_breakdown_json`, `hold_expires_at` (UTC), `cancel_reason?`, timestamps. **[РЕАЛИЗОВАНО]**
 *   `booking_item` — позиции (единицы/допы) — v0 опционально.
-*   `invoice` — `id`, `booking_id`, `number` (уникальный), `amount_total_minor_units`, `currency`, `status: pending|received|refunded`, `due_at` (UTC), `pdf_key`, `raw_payload_json`.
+*   `invoice` — `id`, `booking_id`, `number` (уникальный), `amount_total_minor_units`, `currency`, `status: pending|received|refunded`, `due_at` (UTC), `pdf_key`, `raw_payload_json`. **[РЕАЛИЗОВАНО]**
 *   `document` — PDF-документы (инвойсы/ваучеры) — ключ в GCS.
 
 ### 1.4 Уведомления и аудит
 > **Соответствие Blueprint v1.2**: Реализует **пункт 12 (Comms & Notifications)** и **22 (Event Catalog)**.
 
 *   `notification` — `id`, `type`, `channel`, `to`, `template_key`, `locale`, `status`, `error?`, `payload_json`.
-*   `audit_event` — расширить полями `trace_id`, `booking_id`, `user_id` для упрощения разбора инцидентов.
+*   `audit_event` — расширить полями `trace_id`, `booking_id`, `user_id` для упрощения разбора инцидентов. **[РЕАЛИЗОВАНО]**
 
 ---
 
@@ -87,7 +88,7 @@
 
 ### 2.3 Таймаут и отмена
 
-*   **Cron-задача (Cloud Scheduler)** вызывает `/api/jobs/holds/expire` → идемпотентно находит истекшие `hold` → `booking:canceled`, `slot.capacity_held -= pax`, уведомление об отмене.
+*   **Cron-задача (Cloud Scheduler)** вызывает `/api/jobs/holds/expire` → идемпотентно находит истекшие `hold` → `booking:canceled`, `slot.capacity_held -= pax`, уведомление об отмене. **[РЕАЛИЗОВАНО]**
 
 ---
 
@@ -103,7 +104,9 @@
 **Booking/Billing:**
 
 *   `POST /api/booking/draft` — body: `{routeId, slotId, pax, phone, name?, locale}` → `{priceBreakdown, total, bookingCodePreview}`
-*   `POST /api/booking/hold` — `{bookingDraftId|data, consent}` → `{bookingCode, holdExpiresAt, invoiceUrl}`. **Header `Idempotency-Key` обязателен**.
+*   `POST /api/booking/hold` — `{bookingDraftId|data, consent}` → `{bookingCode, holdExpiresAt, invoiceUrl}`. **Header `Idempotency-Key` обязателен**. **[РЕАЛИЗОВАНО]**
+*   `POST /api/booking/invoice` — `{bookingId}` → `{invoiceNumber, pdfUrl}`. **Header `Idempotency-Key` обязателен**. **[РЕАЛИЗОВАНО]**
+*   `POST /api/booking/confirm` — `{bookingId, paymentRef}` → `{state}`. **Header `Idempotency-Key` обязателен**. **[РЕАЛИЗОВАНО]**
 *   `GET /api/billing/invoices/{code}` — метаданные инвойса
 *   `GET /api/billing/invoices/{code}/pdf` — Signed URL (stream/redirect)
 
@@ -117,7 +120,7 @@
 
 **Internal Jobs (защищено HMAC/IAP):**
 
-*   `POST /api/jobs/holds/expire`
+*   `POST /api/jobs/holds/expire` **[РЕАЛИЗОВАНО]**
 
 > Все write-эндпоинты — только Server Actions / `.server.ts`. Клиент — без прямого импорта Node-SDK.
 
@@ -137,7 +140,7 @@
 > **Соответствие Blueprint v1.2**: Реализует **пункт 5.6 (Billing Off-site)**.
 
 *   Рендер PDF на сервере (через `@react-pdf/renderer` или аналогичный легковесный инструмент), а не Puppeteer.
-*   Хранение в GCS (bucket из Architecture), приватно; выдача Signed URL v4, TTL 15–30 мин.
+*   Хранение в GCS (bucket из Architecture), приватно; выдача Signed URL v4, TTL 15–30 мин. **[РЕАЛИЗОВАНО]**
 *   Нумерация: `INV-YYYYMM-####` (глобально-уникальная или с префиксом филиала).
 *   Локализация шаблона PDF и форматирование валют (с учётом minor units).
 
@@ -161,7 +164,7 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ## 7) Мини-консоль оператора (ops.gts.ru / раздел в админке)
 > **Соответствие Blueprint v1.2**: Реализует **пункт 14 (Operator Console)**.
 
-*   **Доступ строго по роли `Operator`**.
+*   **Доступ строго по роли `Operator`**. **[РЕАЛИЗОВАНО]**
 *   **Bookings Board:** фильтры по дате/статусу/маршруту, действия: «Оплата получена», «Отменить».
 *   **Calendar (v0):** день/неделя по маршрутам/активам; badge для `held/confirmed`.
 *   **Invoice Detail:** просмотр суммы, due date, скачивание PDF, история уведомлений.
@@ -184,19 +187,27 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ## 9) Безопасность/Политики
 > **Соответствие Blueprint v1.2**: Реализует **пункт 12 (Security & Compliance)**.
 
-*   **Idempotency на базе Redis** на критических POST (`draft/hold`).
-*   **Rate-limits (per IP/phone) на базе Redis** на `draft/hold`.
-*   **Валидация E.164** для телефонов (например, через `libphonenumber-js`).
+*   **Idempotency на базе Redis** на критических POST (`hold`, `invoice`, `confirm`). **[РЕАЛИЗОВАНО]** Заголовок `Idempotency-Key` является обязательным. Пример:
+    ```
+    POST /api/booking/hold
+    Content-Type: application/json
+    Idempotency-Key: f9f3b5e0-8e1e-4b9z-9e1e-9b9b8b8b8b8b
+
+    { "bookingId": "..." }
+    ```
+    При повторном запросе с тем же ключом сервер вернет тот же результат с заголовком `X-Idempotent: hit`.
+*   **Rate-limits (per IP) на базе Redis** на `draft/hold`. **[РЕАЛИЗОВАНО]**
+*   **Валидация E.164** для телефонов (например, через `libphonenumber-js`). **[РЕАЛИЗОВАНО]**
 *   Cookies из Stage 1: `HttpOnly/Secure/SameSite=Lax`; сессии проверяются на `/ops/*` через middleware.
-*   Аудит: `BookingDrafted`, `HoldPlaced`, `HoldExpired`, `PaymentReceived`, `BookingConfirmed` и др. с `traceId`.
-*   **State Machine для бронирований**: Переходы между статусами должны валидироваться по заранее определенным правилам (`draft` -> `on_hold` | `canceled`, и т.д.).
+*   Аудит: `BookingDrafted`, `HoldPlaced`, `HoldExpired`, `PaymentReceived`, `BookingConfirmed` и др. с `traceId`. **[РЕАЛИЗОВАНО]**
+*   **State Machine для бронирований**: Переходы между статусами должны валидироваться по заранее определенным правилам (`draft` -> `on_hold` | `canceled`, и т.д.). **[РЕАЛИЗОВАНО]**
 
 ---
 
 ## 10) Наблюдаемость/логи/метрики
 > **Соответствие Blueprint v1.2**: Реализует **пункт 13 (Observability)** и **23 (Non-Functional)**.
 
-*   Логи структурно (`trace_id` пробрасывается через все вызовы).
+*   Логи структурно (`trace_id` пробрасывается через все вызовы). **[РЕАЛИЗОВАНО]**
 *   Техметрики: p95 API, ошибки, глубина очереди (если есть), time to first invoice PDF.
 *   Бизнес-метрики: конверсия `route_view → slot_view → draft → hold → confirm`, доля истёкших hold, медиана времени до «Оплата получена».
 *   Алёрты: всплеск `hold_expired`, рост 5xx, рост `NotificationFailed`, ошибки cron-джобы.
@@ -206,9 +217,9 @@ send(templateKey: string, to: {phone?: string; email?: string; wa?: string}, loc
 ## 11) Тест-план
 > **Соответствие Blueprint v1.2**: Реализует **пункт 26 (Testing & Go-Live)**.
 
-*   **Unit:** прайс-правила (с minor units), генератор слотов, расчёт capacity, idempotency/rate-limit store.
-*   **Интеграция:** `draft/hold` с **конкурентным доступом** (две параллельные попытки на один слот), проверка транзакционности.
-*   **E2E (Playwright):** RU/EN: маршрут → слот → draft → hold → инвойс, таймаут hold, отмена, подтверждение оплатой. Конфигурация с `baseURL` и `webServer`.
+*   **Unit:** прайс-правила (с minor units), генератор слотов, расчёт capacity, idempotency/rate-limit store. **[РЕАЛИЗОВАНО]**
+*   **Интеграция:** `draft/hold` с **конкурентным доступом** (две параллельные попытки на один слот), проверка транзакционности. **[РЕАЛИЗОВАНО]**
+*   **E2E (Playwright):** RU/EN: маршрут → слот → draft → hold → инвойс, таймаут hold, отмена, подтверждение оплатой. Конфигурация с `baseURL` и `webServer`. **[РЕАЛИЗОВАНО]**
 *   **PDF snapshot-тесты:** рендер 2-3 сценария (пустой/много правил/EN).
 
 ---
@@ -329,8 +340,8 @@ export type Invoice = {
 
 ## 16) Риски и смягчения
 
-*   **Гонки в слоте:** **Обязательное** использование транзакций с `SELECT ... FOR UPDATE` или эквивалентным механизмом блокировки на уровне БД.
-*   **Истечение hold:** фоновые джобы (cron/worker) и идемпотентная отмена.
+*   **Гонки в слоте:** **Обязательное** использование транзакций с `SELECT ... FOR UPDATE` или эквивалентным механизмом блокировки на уровне БД. **[РЕАЛИЗОВАНО]**
+*   **Истечение hold:** фоновые джобы (cron/worker) и идемпотентная отмена. **[РЕАЛИЗОВАНО]**
 *   **Переезд на онлайн-платежи:** провайдерный интерфейс `PaymentProvider` подготовлен, но выключен флагом.
 *   **Рост i18n:** хранение i18n в JSONB и ключи шаблонов сразу унифицированы.
 
