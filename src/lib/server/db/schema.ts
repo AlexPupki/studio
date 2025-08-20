@@ -20,12 +20,29 @@ export const bookingStateEnum = pgEnum("booking_state", ['draft', 'hold', 'invoi
 export const invoiceStatusEnum = pgEnum('invoice_status', ['issued', 'paid', 'void']);
 export const actorTypeEnum = pgEnum('actor_type', ['system', 'user', 'ops']);
 export const entityTypeEnum = pgEnum('entity_type', ['booking', 'invoice', 'slot', 'user']);
+export const routeStatusEnum = pgEnum('route_status', ['draft', 'active', 'archived']);
 
 
 export const routes = pgTable("routes", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
-  isActive: boolean("is_active").default(true).notNull(),
+  status: routeStatusEnum('status').default('draft').notNull(),
+  
+  // SEO and i18n content
+  title: jsonb("title").$type<Record<string, string>>().notNull(), // e.g. { en: "Sea Trip", ru: "Морская прогулка" }
+  description: jsonb("description").$type<Record<string, string>>(),
+  meetingPoint: jsonb("meeting_point").$type<Record<string, string>>(),
+
+  // Core properties
+  durationMinutes: integer("duration_minutes").notNull(),
+  basePriceMinor: bigint("base_price_minor", { mode: 'number' }).notNull(),
+  
+  // Media content (keys to files in GCS)
+  gallery: text("gallery").array(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
 export const slots = pgTable("slots", {
