@@ -46,7 +46,7 @@ async function handler(req: NextRequest, traceId: string) {
 
     const [updatedBooking] = await tx
       .update(bookings)
-      .set({ state: 'cancel' })
+      .set({ state: 'cancel', cancelReason: 'user_request' })
       .where(eq(bookings.id, bookingId))
       .returning({ state: bookings.state });
 
@@ -58,7 +58,7 @@ async function handler(req: NextRequest, traceId: string) {
         actor: { type: 'user', id: 'TODO' }, // TODO: get from session
         action: 'booking.canceled',
         entity: { type: 'booking', id: bookingId },
-        data: { from: previousState, to: 'cancel' }
+        data: { from: previousState, to: 'cancel', reason: 'user_request' }
     });
 
     return updatedBooking;

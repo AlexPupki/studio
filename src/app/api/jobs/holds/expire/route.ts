@@ -63,7 +63,7 @@ async function handler(req: NextRequest, traceId: string) {
     .limit(MAX_BATCH_SIZE);
 
   if (expiredBookings.length === 0) {
-    return NextResponse.json({ processed: 0, released: 0, status: 'no_expired_holds' });
+    return NextResponse.json({ processed: 0, seatsReleased: 0, status: 'no_expired_holds' });
   }
 
   let releasedCount = 0;
@@ -71,33 +71,38 @@ async function handler(req: NextRequest, traceId: string) {
   const startTime = Date.now();
 
   for (const booking of expiredBookings) {
-    await withPgTx(async (tx) => {
-      // Set the state to 'cancel' with reason 'expired'
-      const [updated] = await tx
-        .update(bookings)
-        .set({ state: 'cancel', cancelReason: 'expired' })
-        .where(and(
-          eq(bookings.id, booking.id),
-          eq(bookings.state, 'hold') // Double-check state inside transaction
-        ))
-        .returning({ id: bookings.id });
-      
-      // If the update was successful (i.e., the booking was still on hold)
-      if (updated) {
-        await releaseHold(tx, booking.slotId, booking.qty);
-        
-        releasedCount += booking.qty;
-        canceledCount++;
+    try {
+        await withPgTx(async (tx) => {
+          // Set the state to 'cancel' with reason 'expired'
+          const [updated] = await tx
+            .update(bookings)
+            .set({ state: 'cancel', cancelReason: 'expired' })
+            .where(and(
+              eq(bookings.id, booking.id),
+              eq(bookings.state, 'hold') // Double-check state inside transaction
+            ))
+            .returning({ id: bookings.id });
+          
+          // If the update was successful (i.e., the booking was still on hold)
+          if (updated) {
+            await releaseHold(tx, booking.slotId, booking.qty);
+            
+            releasedCount += booking.qty;
+            canceledCount++;
 
-        await audit({
-            traceId,
-            actor: { type: 'system', id: 'cron:expire_holds' },
-            action: 'booking.expired',
-            entity: { type: 'booking', id: booking.id },
-            data: { from: 'hold', to: 'cancel' }
+            await audit({
+                traceId,
+                actor: { type: 'system', id: 'cron:expire_holds' },
+                action: 'booking.expired',
+                entity: { type: 'booking', id: booking.id },
+                data: { from: 'hold', to: 'cancel' }
+            });
+          }
         });
-      }
-    });
+    } catch(error) {
+        console.error(`[${traceId}] Failed to process expired booking ${booking.id}:`, error);
+        // Continue to the next booking even if one fails
+    }
   }
 
   const durationMs = Date.now() - startTime;

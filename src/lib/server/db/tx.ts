@@ -37,6 +37,7 @@ export async function withPgTx<T>(
         if (i < MAX_RETRIES - 1) {
           // Wait before retrying with jitter
           const delay = RETRY_DELAY_MS * Math.pow(2, i) + Math.random() * RETRY_DELAY_MS;
+          console.warn(`Transaction failed with serialization error. Retrying in ${delay.toFixed(0)}ms... (Attempt ${i + 1}/${MAX_RETRIES})`);
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
@@ -47,5 +48,6 @@ export async function withPgTx<T>(
   }
 
   // This line should be unreachable if the loop is correct, but TypeScript needs it.
+  console.error("Transaction failed after maximum retries.", lastError);
   throw lastError;
 }

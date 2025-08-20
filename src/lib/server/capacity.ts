@@ -1,14 +1,13 @@
 'use server';
 
-import { db } from './db';
 import { slots } from './db/schema';
 import { withPgTx } from './db/tx';
 import { eq, sql } from 'drizzle-orm';
 import { ApiError } from './http/errors';
-import { PgTransaction } from 'drizzle-orm/pg-core';
-import { ExtractTablesWithRelations } from 'drizzle-orm';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
+import type { ExtractTablesWithRelations, SQL } from 'drizzle-orm';
 
-type Tx = PgTransaction<any, any, ExtractTablesWithRelations<any>, SQL.Aliased<any, any> | SQL.Aliased<any, any>[]>;
+type Tx = PgTransaction<any, any, ExtractTablesWithRelations<any>, SQL.Aliased<any, any>[] | SQL.Aliased<any, any>>;
 
 /**
  * Reserves capacity for a given slot within a transaction.
