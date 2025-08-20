@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withApiError, ApiError } from '@/lib/server/http/errors';
-import { getEnv } from '@/lib/server/config';
+import { getEnv } from '@/lib/server/config.server';
 import { db } from '@/lib/server/db';
 import { bookings } from '@/lib/server/db/schema';
 import { and, eq, lte } from 'drizzle-orm';
