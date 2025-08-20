@@ -12,6 +12,8 @@ import { withPgTx } from "@/lib/server/db/tx";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { audit } from "@/lib/server/audit";
+import { rateLimit } from "@/lib/server/redis/rateLimit";
+import { getIp } from "@/lib/server/http/ip";
 
 const ConfirmRequestSchema = z.object({
   bookingId: z.string().uuid(),
@@ -20,6 +22,7 @@ const ConfirmRequestSchema = z.object({
 
 async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, traceId, async () => {
+    await rateLimit('booking_confirm', 5, '60s', getIp());
     assertTrustedOrigin(req);
     const body = await req.json();
     const parsed = ConfirmRequestSchema.safeParse(body);

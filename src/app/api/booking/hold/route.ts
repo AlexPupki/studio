@@ -12,8 +12,9 @@ import { withPgTx } from "@/lib/server/db/tx";
 import { addMinutes } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { rateLimitByIp } from "@/lib/server/redis/rateLimit";
+import { rateLimit } from "@/lib/server/redis/rateLimit";
 import { audit } from "@/lib/server/audit";
+import { getIp } from "@/lib/server/http/ip";
 
 const HoldRequestSchema = z.object({
   bookingId: z.string().uuid(),
@@ -21,7 +22,7 @@ const HoldRequestSchema = z.object({
 
 async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, traceId, async () => {
-    await rateLimitByIp('booking_hold', 5, '1m');
+    await rateLimit('booking_hold', 5, '60s', getIp());
     assertTrustedOrigin(req);
 
     const body = await req.json();

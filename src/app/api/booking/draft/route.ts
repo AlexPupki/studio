@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from "@/lib/server/db";
@@ -7,9 +8,10 @@ import { normalizePhone } from "@/lib/shared/phone.utils";
 import { customAlphabet } from 'nanoid';
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { rateLimitByIp } from "@/lib/server/redis/rateLimit";
+import { rateLimit } from "@/lib/server/redis/rateLimit";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { audit } from "@/lib/server/audit";
+import { getIp } from "@/lib/server/http/ip";
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
 
@@ -23,7 +25,7 @@ const DraftRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest, traceId: string) {
-  await rateLimitByIp('booking_draft', 10, '1m');
+  await rateLimit('booking_draft', 5, '60s', getIp());
   assertTrustedOrigin(req);
 
   const body = await req.json();
@@ -38,6 +40,9 @@ async function handler(req: NextRequest, traceId: string) {
   if (!phoneE164) {
     throw new ApiError("validation_error", "Invalid phone number format", 400);
   }
+  
+  // Additional rate limit by phone number
+  await rateLimit('booking_draft_phone', 5, '60s', phoneE164);
 
   const [newBooking] = await db
     .insert(bookings)
