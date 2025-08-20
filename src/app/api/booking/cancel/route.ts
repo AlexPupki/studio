@@ -46,7 +46,7 @@ async function handler(req: NextRequest, traceId: string) {
 
     const [updatedBooking] = await tx
       .update(bookings)
-      .set({ state: 'cancel', cancelReason: 'user_request' })
+      .set({ state: 'cancel', cancelReason: 'ops_request' })
       .where(eq(bookings.id, bookingId))
       .returning({ state: bookings.state });
 
@@ -55,10 +55,10 @@ async function handler(req: NextRequest, traceId: string) {
     
     await audit({
         traceId,
-        actor: { type: 'user', id: 'TODO' }, // TODO: get from session
+        actor: { type: 'ops', id: 'TODO' }, // TODO: get from session
         action: 'booking.canceled',
         entity: { type: 'booking', id: bookingId },
-        data: { from: previousState, to: 'cancel', reason: 'user_request' }
+        data: { from: previousState, to: 'cancel', reason: 'ops_request' }
     });
 
     return updatedBooking;

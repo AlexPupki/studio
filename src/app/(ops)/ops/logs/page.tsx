@@ -15,67 +15,73 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { desc, gte } from "drizzle-orm";
-import { requestLogs } from "@/lib/server/db/schema";
-import { subHours } from "date-fns";
+import { desc } from "drizzle-orm";
+import { auditEvents } from "@/lib/server/db/schema";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-function getStatusColor(status: number) {
-  if (status >= 500) return 'destructive';
-  if (status >= 400) return 'secondary';
-  return 'default';
+function getActorBadgeVariant(actorType: string) {
+  switch (actorType) {
+    case 'system': return 'secondary';
+    case 'ops': return 'destructive';
+    case 'user': return 'default';
+    default: return 'outline';
+  }
 }
 
 export default async function OpsLogsPage() {
-  const logs = await db
+  const events = await db
     .select()
-    .from(requestLogs)
-    .where(gte(requestLogs.ts, subHours(new Date(), 24)))
-    .orderBy(desc(requestLogs.ts))
+    .from(auditEvents)
+    .orderBy(desc(auditEvents.ts))
     .limit(100);
 
   return (
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle>Логи запросов</CardTitle>
+          <CardTitle>Журнал действий</CardTitle>
           <CardDescription>
-            Запросы к API за последние 24 часа.
+            Последние 100 событий в системе.
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex gap-2">
+            <Button variant="outline" asChild>
+                <Link href="/ops/dashboard">Бронирования</Link>
+            </Button>
+            <Button asChild>
+                <Link href="/ops/logs">Журнал действий</Link>
+            </Button>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Время</TableHead>
-                <TableHead>Метод</TableHead>
-                <TableHead>Путь</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Длительность</TableHead>
+                <TableHead>Субъект</TableHead>
+                <TableHead>Действие</TableHead>
+                <TableHead>Объект</TableHead>
+                <TableHead>ID Объекта</TableHead>
                 <TableHead>Trace ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {logs.map((log) => (
-                <TableRow key={log.id}>
+              {events.map((event) => (
+                <TableRow key={event.id}>
                   <TableCell>
-                    {log.ts.toLocaleTimeString('ru-RU')}
+                    {event.ts.toLocaleString('ru-RU')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{log.method}</Badge>
+                    <Badge variant={getActorBadgeVariant(event.actorType)}>{event.actorType}</Badge>
+                    {event.actorId && <span className="ml-2 text-muted-foreground text-xs">{event.actorId}</span>}
                   </TableCell>
-                  <TableCell className="font-mono">{log.path}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(log.status)}>{log.status}</Badge>
+                  <TableCell className="font-medium">{event.action}</TableCell>
+                   <TableCell>
+                      <Badge variant="outline">{event.entityType}</Badge>
                   </TableCell>
-                  <TableCell>{log.durationMs}ms</TableCell>
-                  <TableCell className="font-mono">
-                     <Button variant="link" asChild className="p-0 h-auto font-mono">
-                        <Link href={`/ops/logs?traceId=${log.traceId}`}>
-                            {log.traceId.substring(0, 8)}...
-                        </Link>
-                     </Button>
+                  <TableCell className="font-mono text-xs">{event.entityId}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                     {event.traceId?.substring(0, 8)}...
                   </TableCell>
                 </TableRow>
               ))}

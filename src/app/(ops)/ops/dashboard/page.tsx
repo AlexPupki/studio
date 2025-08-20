@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function OpsDashboard() {
   const bookings = await db.query.bookings.findMany({
@@ -33,6 +34,14 @@ export default async function OpsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex gap-2">
+             <Button asChild>
+                <Link href="/ops/dashboard">Бронирования</Link>
+            </Button>
+            <Button variant="outline" asChild>
+                <Link href="/ops/logs">Журнал действий</Link>
+            </Button>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
