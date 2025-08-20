@@ -15,6 +15,12 @@ const EnvSchema = z.object({
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.string().default('30'),
   CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters long"),
+  
+  // YCLIENTS Integration
+  UCLIENTS_API_URL: z.string().url().optional(),
+  UCLIENTS_API_KEY: z.string().min(1).optional(),
+  UCLIENTS_WEBHOOK_SECRET: z.string().min(1).optional(),
+  UCLIENTS_TZ: z.string().default('Europe/Moscow'),
 });
 
 
@@ -52,6 +58,9 @@ const featureFlags = {
 
   // Partners
   FEATURE_PARTNER_PORTAL: process.env.FEATURE_PARTNER_PORTAL === 'true', // default: false
+
+  // Integrations
+  FEATURE_UCLIENTS_ENABLED: process.env.FEATURE_UCLIENTS_ENABLED === 'true', // default: false
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;
