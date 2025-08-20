@@ -49,6 +49,7 @@ export const bookings = pgTable("bookings", {
     qty: integer('qty').notNull(),
     customerName: text('customer_name').notNull(),
     customerPhoneE164: text('customer_phone_e164').notNull(),
+    paymentRef: text('payment_ref'),
     holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
