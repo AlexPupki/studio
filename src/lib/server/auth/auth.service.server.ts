@@ -47,6 +47,7 @@ class IamServiceImpl implements IamService {
       lastLoginAt: new Date().toISOString(),
       status: 'active',
       preferredLanguage: 'ru',
+      roles: ['customer'],
     };
     users.push(newUser);
     await this.db.set('users', users);

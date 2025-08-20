@@ -14,6 +14,7 @@ const EnvSchema = z.object({
   PEPPER: z.string().min(16, "PEPPER must be at least 16 characters long"),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.string().default('30'),
+  CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters long"),
 });
 
 

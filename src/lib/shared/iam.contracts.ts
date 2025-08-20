@@ -8,6 +8,7 @@ export interface User {
   lastLoginAt: string;
   status: 'active' | 'blocked';
   preferredLanguage: 'ru' | 'en';
+  roles: string[]; // e.g., ['customer', 'ops']
 }
 
 export interface LoginCode {

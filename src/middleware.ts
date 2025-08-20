@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getFeature, getEnv } from '@/lib/server/config';
-
+import { getCurrentUser } from '@/lib/server/auth/auth.actions';
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
@@ -29,10 +29,20 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL(nextUrl || '/account', request.url));
         }
     }
+    
+    if (pathname.startsWith('/ops') || pathname.startsWith('/api/ops')) {
+        const user = await getCurrentUser();
+        if (!user || !user.roles.includes('ops')) {
+            if (pathname.startsWith('/api/ops')) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+            }
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+    }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/account/:path*', '/login', '/verify'],
+  matcher: ['/account/:path*', '/login', '/verify', '/ops/:path*', '/api/ops/:path*'],
 };
