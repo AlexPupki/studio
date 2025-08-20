@@ -3,7 +3,7 @@
 import { z } from 'zod';
 
 const EnvSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(), // Optional during build
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
@@ -22,10 +22,10 @@ const parsedEnv = EnvSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
     console.error(
-      "❌ Invalid environment variables:",
+      "❌ Invalid server environment variables:",
       parsedEnv.error.flatten().fieldErrors,
     );
-    throw new Error("Invalid environment variables.");
+    throw new Error("Invalid server environment variables.");
 }
 
 const envConfig = parsedEnv.data;

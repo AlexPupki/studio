@@ -58,6 +58,12 @@ gcloud secrets versions add "JWT_SECRET" --project="[YOUR_PROJECT_ID]" --data-fi
 gcloud secrets create "CRON_SECRET" --project="[YOUR_PROJECT_ID]"
 gcloud secrets versions add "CRON_SECRET" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_super_secret_cron_string"
 
+gcloud secrets create "SESSION_SECRET_KEY" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "SESSION_SECRET_KEY" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_super_secret_session_key_32_chars_long"
+
+gcloud secrets create "PEPPER" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PEPPER" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_super_secret_pepper_16_chars_long"
+
 
 # Grant the App Hosting service account access to the secrets
 # You can find the service account email in the Google Cloud console
@@ -66,7 +72,7 @@ gcloud secrets add-iam-policy-binding "DATABASE_URL" \
     --member="serviceAccount:service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-# Repeat for REDIS_URL, JWT_SECRET, and CRON_SECRET
+# Repeat for REDIS_URL, JWT_SECRET, CRON_SECRET, SESSION_SECRET_KEY, and PEPPER
 ```
 
 ### 2. Deploy

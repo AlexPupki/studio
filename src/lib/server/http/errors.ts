@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { db } from '../db';
 import { requestLogs } from '../db/schema';
 import { getIp } from '../http/ip';
+import { audit } from '../audit';
 
 /**
  * A standard format for API errors.
@@ -87,6 +88,22 @@ export function withApiError(
       
       errorCode = apiError.code;
       console.error(`[${traceId}] <== ${method} ${urlPath} ${apiError.statusCode} ERROR: ${apiError.message}`, apiError.details || '');
+      
+      // Audit critical errors
+      if (apiError.statusCode >= 500) {
+        audit({
+            traceId,
+            actor: { type: 'system', id: 'api_error_wrapper' },
+            action: 'error.api.unhandled',
+            entity: { type: 'system', id: urlPath },
+            data: { 
+                method, 
+                status: apiError.statusCode, 
+                code: apiError.code, 
+                message: apiError.message 
+            }
+        }).catch(console.error);
+      }
       
       response = apiError.toResponse(traceId);
       return response;
