@@ -4,6 +4,19 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
+## DB
+
+This project uses Drizzle ORM to manage the database schema.
+
+- To generate a new migration based on schema changes in `src/lib/server/db/schema.ts`, run:
+  ```bash
+  npm run db:generate
+  ```
+- To apply pending migrations to the database, run:
+  ```bash
+  npm run db:migrate
+  ```
+
 ## Deploy
 
 This project is configured for deployment on Firebase App Hosting.
