@@ -1,7 +1,13 @@
-# Settings to manage and configure a Firebase App Hosting backend.
+# Settings for Firebase App Hosting
 # https://firebase.google.com/docs/app-hosting/configure
 
+# The runtime to use for the server.
+runtime: nodejs20
+
+# The region to run the server in.
+region: europe-west1
+
+# Run config settings for the server.
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  minInstances: 1
+  maxInstances: 3
