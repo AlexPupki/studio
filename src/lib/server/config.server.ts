@@ -7,7 +7,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
-  GCS_BUCKET: z.string().min(1),
+  GCS_BUCKET: z.string().min(1).optional(),
   BASE_CURRENCY: z.enum(['RUB', 'USD', 'EUR']).default('RUB'),
   DEFAULT_LOCALE: z.enum(['ru', 'en']).default('ru'),
   SESSION_SECRET_KEY: z.string().min(32, "SESSION_SECRET_KEY must be at least 32 characters long"),

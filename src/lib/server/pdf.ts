@@ -1,7 +1,7 @@
 'use server';
 import { Readable } from 'stream';
 import { Storage } from '@google-cloud/storage';
-import { getEnv } from './config';
+import { getEnv } from './config.server';
 
 // This is a placeholder for a real PDF generation service.
 // In a real app, you would use a library like @react-pdf/renderer or puppeteer.
@@ -14,8 +14,14 @@ import { getEnv } from './config';
  */
 export async function generateAndUploadPdf(invoiceNumber: string, content: string): Promise<string> {
     const bucketName = getEnv('GCS_BUCKET');
+    if (!bucketName) {
+        throw new Error("GCS_BUCKET environment variable is not set.");
+    }
     const storage = new Storage();
-    const filePath = `invoices/${invoiceNumber}.pdf`;
+    const year = new Date().getFullYear();
+    const month = (new Date().getMonth() + 1).toString().padStart(2, '0');
+    const filePath = `invoices/${year}/${month}/invoice-${invoiceNumber}.pdf`;
+    
     const bucket = storage.bucket(bucketName);
     const file = bucket.file(filePath);
 

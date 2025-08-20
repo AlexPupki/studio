@@ -1,7 +1,7 @@
 'use server';
 
 import { Storage } from '@google-cloud/storage';
-import { getEnv } from './config';
+import { getEnv } from './config.server';
 
 let storage: Storage | undefined;
 
@@ -26,6 +26,9 @@ export async function generateUploadUrl(
     expiresIn: number = 3600 // 1 hour
 ): Promise<{ url: string; path: string }> {
     const bucketName = getEnv('GCS_BUCKET');
+     if (!bucketName) {
+        throw new Error("GCS_BUCKET environment variable is not set.");
+    }
     const storageClient = getStorageClient();
 
     const options = {
@@ -54,6 +57,9 @@ export async function generateDownloadUrl(
     expiresIn: number = 3600 // 1 hour
 ): Promise<string> {
     const bucketName = getEnv('GCS_BUCKET');
+     if (!bucketName) {
+        throw new Error("GCS_BUCKET environment variable is not set.");
+    }
     const storageClient = getStorageClient();
 
     const options = {
