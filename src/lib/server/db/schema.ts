@@ -38,12 +38,42 @@ export const entityTypeEnum = pgEnum('entity_type', [
   'slot',
   'user',
   'system',
+  'page',
 ]);
 export const routeStatusEnum = pgEnum('route_status', [
   'draft',
   'active',
   'archived',
 ]);
+export const pageStatusEnum = pgEnum('page_status', [
+    'draft',
+    'published',
+    'archived'
+]);
+
+
+export const pages = pgTable('pages', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: text('slug').notNull().unique(),
+    status: pageStatusEnum('status').default('draft').notNull(),
+    title: text('title').notNull(),
+    contentBlocks: jsonb('content_blocks').$type<any[]>(),
+    seoMeta: jsonb('seo_meta').$type<Record<string, string>>(),
+    authorId: text('author_id'), // Assuming author is a user ID (string)
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export const pageVersions = pgTable('page_versions', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pageId: uuid('page_id').notNull().references(() => pages.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    contentBlocks: jsonb('content_blocks').$type<any[]>(),
+    authorId: text('author_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
 
 export const routes = pgTable('routes', {
   id: uuid('id').primaryKey().defaultRandom(),
