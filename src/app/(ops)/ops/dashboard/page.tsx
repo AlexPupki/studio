@@ -21,7 +21,7 @@ export default function OpsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-wrap gap-2">
-            <Button variant="secondary" asChild>
+            <Button asChild>
               <Link href="/ops/bookings">Бронирования</Link>
             </Button>
             <Button variant="outline" asChild>
@@ -35,13 +35,10 @@ export default function OpsDashboard() {
             </Button>
           </div>
           <div className="border rounded-lg p-8 text-center text-muted-foreground">
-            <p>Раздел управления бронированиями.</p>
-             <p className="text-sm">Для навигации используйте меню выше.</p>
+            <p>Добро пожаловать в панель управления. Для навигации используйте меню выше.</p>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    

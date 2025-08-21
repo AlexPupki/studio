@@ -21,13 +21,13 @@ export default function OpsContentPage() {
         </CardHeader>
         <CardContent>
            <div className="mb-4 flex flex-wrap gap-2">
-            <Button variant="secondary" asChild>
+            <Button asChild>
               <Link href="/ops/content/posts">Посты</Link>
             </Button>
-             <Button variant="outline" asChild>
+             <Button asChild>
               <Link href="/ops/content/pages">Страницы</Link>
             </Button>
-             <Button variant="outline" asChild>
+             <Button asChild>
               <Link href="/ops/content/categories">Категории</Link>
             </Button>
            </div>
