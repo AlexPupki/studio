@@ -21,21 +21,18 @@ export default function OpsContentPage() {
         </CardHeader>
         <CardContent>
            <div className="mb-4 flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/ops/dashboard">Бронирования</Link>
+            <Button variant="secondary" asChild>
+              <Link href="/ops/content/posts">Посты</Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/ops/logs">Журнал действий</Link>
+             <Button variant="outline" asChild>
+              <Link href="/ops/content/pages">Страницы</Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/ops/catalog">Каталог</Link>
+             <Button variant="outline" asChild>
+              <Link href="/ops/content/categories">Категории</Link>
             </Button>
-            <Button asChild>
-              <Link href="/ops/content">Контент</Link>
-            </Button>
-          </div>
+           </div>
           <div className="border rounded-lg p-8 text-center text-muted-foreground">
-            <p>Раздел управления контентом находится в разработке.</p>
+            <p>Выберите раздел контента для управления.</p>
           </div>
         </CardContent>
       </Card>
