@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Mountain, LogIn, Home, User, Settings } from 'lucide-react';
+import { Mountain, LogIn, Home, User, Settings, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from './ui/button';
@@ -44,7 +44,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
              <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/ops')}>
                 <Link href="/ops/dashboard">
-                  <Settings />
+                  <LayoutDashboard />
                   <span>Панель управления</span>
                 </Link>
               </SidebarMenuButton>
