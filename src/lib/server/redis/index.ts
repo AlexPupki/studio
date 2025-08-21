@@ -1,7 +1,7 @@
 'use server';
 
 import Redis from 'ioredis';
-import { getEnv } from '../config';
+import { getEnv } from '../config.server';
 
 let redis: Redis | undefined;
 
