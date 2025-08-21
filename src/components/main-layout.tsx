@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Mountain, LogIn, Home, User } from 'lucide-react';
+import { Mountain, LogIn, Home, User, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from './ui/button';
@@ -42,10 +42,18 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith('/ops')}>
+                <Link href="/ops/dashboard">
+                  <Settings />
+                  <span>Панель управления</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith('/account')}>
                 <Link href="/account">
                   <User />
-                  <span>Аккаунт</span>
+                  <span>Мой аккаунт</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

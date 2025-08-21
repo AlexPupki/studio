@@ -17,11 +17,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { desc } from "drizzle-orm";
+import { bookings } from "@/lib/server/db/schema";
 
 export default async function OpsDashboard() {
-  const bookings = await db.query.bookings.findMany({
-    limit: 50,
-    orderBy: (bookings, { desc }) => [desc(bookings.createdAt)],
+  const latestBookings = await db.query.bookings.findMany({
+    limit: 10,
+    orderBy: [desc(bookings.createdAt)],
   });
 
   return (
@@ -30,18 +32,25 @@ export default async function OpsDashboard() {
         <CardHeader>
           <CardTitle>Панель оператора</CardTitle>
           <CardDescription>
-            Управление бронированиями и инвойсами.
+            Обзор последних бронирований и действий в системе.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex gap-2">
-             <Button asChild>
+          <div className="mb-4 flex flex-wrap gap-2">
+             <Button asChild variant="secondary">
                 <Link href="/ops/dashboard">Бронирования</Link>
             </Button>
             <Button variant="outline" asChild>
                 <Link href="/ops/logs">Журнал действий</Link>
             </Button>
+             <Button variant="outline" asChild>
+                <Link href="/ops/catalog">Каталог</Link>
+            </Button>
+             <Button variant="outline" asChild>
+                <Link href="/ops/content">Контент</Link>
+            </Button>
           </div>
+           <h3 className="text-lg font-semibold mb-2">Последние бронирования</h3>
           <Table>
             <TableHeader>
               <TableRow>
@@ -51,11 +60,15 @@ export default async function OpsDashboard() {
                 <TableHead>Телефон</TableHead>
                 <TableHead>Кол-во</TableHead>
                 <TableHead>Дата</TableHead>
-                <TableHead>Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bookings.map((booking) => (
+             {latestBookings.length === 0 && (
+                 <TableRow>
+                    <TableCell colSpan={6} className="text-center">Пока нет ни одного бронирования.</TableCell>
+                 </TableRow>
+             )}
+              {latestBookings.map((booking) => (
                 <TableRow key={booking.id}>
                   <TableCell className="font-mono">{booking.code}</TableCell>
                   <TableCell>
@@ -68,11 +81,6 @@ export default async function OpsDashboard() {
                   <TableCell>{booking.qty}</TableCell>
                   <TableCell>
                     {booking.createdAt?.toLocaleDateString('ru-RU')}
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm">
-                      Открыть
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

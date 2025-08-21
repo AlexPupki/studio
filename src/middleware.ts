@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getFeature, getEnv } from '@/lib/server/config';
-import { getCurrentUser } from '@/lib/server/auth/auth.actions';
 
 // This is a placeholder for Firebase Admin SDK initialization
 // In a real app, this would be initialized once.
@@ -41,17 +40,27 @@ async function verifyFirebaseToken(request: NextRequest): Promise<{ uid: string,
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
-    
+    const cookieName = getEnv('COOKIE_NAME');
+    const sessionCookie = request.cookies.get(cookieName);
+
     // --- OPS Routes Protection ---
-    if (pathname.startsWith('/ops') || pathname.startsWith('/api/ops')) {
+    if (pathname.startsWith('/ops')) {
+        // For web access to /ops, we check for our own session cookie.
+        // API access to /api/ops will check for Firebase token.
+        if (!sessionCookie) {
+             return NextResponse.redirect(new URL('/login?next=' + pathname, request.url));
+        }
+        // Here you would typically verify the session and check user roles from your DB
+        // For now, we just check for the presence of the cookie.
+    }
+    
+    // --- API OPS Routes Protection ---
+    if (pathname.startsWith('/api/ops')) {
         const decodedToken = await verifyFirebaseToken(request);
         
         if (!decodedToken) {
             const response = { error: 'Unauthorized', code: 'UNAUTHORIZED' };
-             if (pathname.startsWith('/api/ops')) {
-                return NextResponse.json(response, { status: 401 });
-            }
-            return NextResponse.redirect(new URL('/login?error=ops_auth_failed', request.url));
+            return NextResponse.json(response, { status: 401 });
         }
 
         const userRoles = decodedToken.claims.roles || [];
@@ -76,8 +85,6 @@ export async function middleware(request: NextRequest) {
 
     // --- Customer Routes Protection (/account, /login, /verify) ---
     const isAccountFeatureEnabled = getFeature('FEATURE_ACCOUNT');
-    const cookieName = getEnv('COOKIE_NAME');
-    const sessionCookie = request.cookies.get(cookieName);
 
     if (!isAccountFeatureEnabled && pathname.startsWith('/account')) {
         return NextResponse.redirect(new URL('/', request.url));
