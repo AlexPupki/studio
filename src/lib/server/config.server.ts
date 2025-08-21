@@ -5,16 +5,16 @@ import { z } from 'zod';
 const EnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(), // Optional during build
   DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url(),
-  JWT_SECRET: z.string().min(32),
+  REDIS_URL: z.string().url().optional(),
+  JWT_SECRET: z.string().min(32).optional(),
   GCS_BUCKET: z.string().min(1).optional(),
   BASE_CURRENCY: z.enum(['RUB', 'USD', 'EUR']).default('RUB'),
   DEFAULT_LOCALE: z.enum(['ru', 'en']).default('ru'),
-  SESSION_SECRET_KEY: z.string().min(32, "SESSION_SECRET_KEY must be at least 32 characters long"),
-  PEPPER: z.string().min(16, "PEPPER must be at least 16 characters long"),
+  SESSION_SECRET_KEY: z.string().min(32, "SESSION_SECRET_KEY must be at least 32 characters long").optional(),
+  PEPPER: z.string().min(16, "PEPPER must be at least 16 characters long").optional(),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.string().default('30'),
-  CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters long"),
+  CRON_SECRET: z.string().min(32, "CRON_SECRET must be at least 32 characters long").optional(),
   
   // YCLIENTS Integration
   UCLIENTS_API_URL: z.string().url().optional(),
