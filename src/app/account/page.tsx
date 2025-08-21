@@ -25,16 +25,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?next=/account');
   }
   
-  // For now, get the name from the latest booking.
-  // In a real app, user profile should be a separate entity.
   const latestBooking = await db.query.bookings.findFirst({
     where: eq(bookings.customerPhoneE164, user.phoneE164),
     orderBy: (bookings, { desc }) => [desc(bookings.createdAt)],
@@ -42,7 +41,7 @@ export default async function AccountPage() {
 
   const userBookings = await db.query.bookings.findMany({
     where: eq(bookings.customerPhoneE164, user.phoneE164),
-    limit: 10,
+    limit: 5,
     orderBy: (bookings, { desc }) => [desc(bookings.createdAt)],
   });
 
@@ -50,27 +49,30 @@ export default async function AccountPage() {
   const membershipLevel = 'Standard'; // Placeholder
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
+    <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold font-heading">Личный кабинет</h1>
+        <p className="text-muted-foreground">Добро пожаловать, {userName}! Здесь вы можете управлять своим аккаунтом и бронированиями.</p>
+      </div>
+      <Separator/>
+
       <Card>
         <CardHeader>
-          <CardTitle>Личный кабинет</CardTitle>
-          <CardDescription>
-            Добро пожаловать, {userName}! Здесь вы можете управлять своим аккаунтом.
-          </CardDescription>
+          <CardTitle>Ваш профиль</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-medium">Ваш номер телефона:</h3>
-              <p className="text-muted-foreground">{user.phoneE164}</p>
+              <h3 className="font-medium text-sm text-muted-foreground">Номер телефона</h3>
+              <p>{user.phoneE164}</p>
             </div>
              <div>
-              <h3 className="font-medium">Уровень членства:</h3>
-              <p className="text-muted-foreground">{membershipLevel}</p>
+              <h3 className="font-medium text-sm text-muted-foreground">Уровень членства</h3>
+              <p>{membershipLevel}</p>
             </div>
             <div>
-              <h3 className="font-medium">Дата регистрации:</h3>
-              <p className="text-muted-foreground">
+              <h3 className="font-medium text-sm text-muted-foreground">Дата регистрации</h3>
+              <p>
                 {new Date(user.createdAt).toLocaleDateString('ru-RU')}
               </p>
             </div>
@@ -87,8 +89,8 @@ export default async function AccountPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle>История бронирований</CardTitle>
-            <CardDescription>Ваши последние 10 бронирований.</CardDescription>
+            <CardTitle>Последние бронирования</CardTitle>
+            <CardDescription>Ваши последние 5 бронирований.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
@@ -103,7 +105,7 @@ export default async function AccountPage() {
                 <TableBody>
                   {userBookings.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center">У вас еще нет бронирований.</TableCell>
+                      <TableCell colSpan={4} className="text-center h-24">У вас еще нет бронирований.</TableCell>
                     </TableRow>
                   )}
                   {userBookings.map((booking) => (
@@ -121,11 +123,6 @@ export default async function AccountPage() {
                 </TableBody>
             </Table>
         </CardContent>
-         <CardFooter>
-            <Button asChild variant="secondary">
-                <Link href="/account/bookings">Смотреть все</Link>
-            </Button>
-         </CardFooter>
       </Card>
     </div>
   );

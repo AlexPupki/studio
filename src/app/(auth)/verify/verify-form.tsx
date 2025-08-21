@@ -16,6 +16,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -30,6 +31,7 @@ import {
 import React from 'react';
 import { requestLoginCode, verifyLoginCode } from '@/lib/server/auth/auth.actions';
 import { maskPhone } from '@/lib/shared/phone.utils';
+import Link from 'next/link';
 
 const FormSchema = z.object({
   code: z.string().min(6, {
@@ -42,6 +44,7 @@ export function VerifyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone');
+  const nextUrl = searchParams.get('next');
 
   const [resendCooldown, setResendCooldown] = React.useState(60);
   const [isResending, setIsResending] = React.useState(false);
@@ -107,7 +110,7 @@ export function VerifyForm() {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     if (!phone) return;
     try {
-      const result = await verifyLoginCode({ phoneE164: phone, code: data.code });
+      const result = await verifyLoginCode({ phoneE164: phone, code: data.code, redirectTo: nextUrl });
       if (result.success) {
         toast({
           title: 'Успешно',
@@ -137,8 +140,8 @@ export function VerifyForm() {
   const maskedPhone = maskPhone(phone);
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
+    <Card className="w-full max-w-md shadow-2xl">
+      <CardHeader className="text-center">
         <CardTitle className="text-2xl">Подтверждение номера</CardTitle>
         <CardDescription>
           Мы отправили 6-значный код на номер {maskedPhone}.
@@ -152,10 +155,10 @@ export function VerifyForm() {
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Код подтверждения</FormLabel>
+                  <FormLabel className="sr-only">Код подтверждения</FormLabel>
                   <FormControl>
                     <InputOTP maxLength={6} {...field} inputMode="numeric">
-                      <InputOTPGroup className="w-full">
+                      <InputOTPGroup className="w-full justify-center">
                         <InputOTPSlot index={0} />
                         <InputOTPSlot index={1} />
                         <InputOTPSlot index={2} />
@@ -165,7 +168,7 @@ export function VerifyForm() {
                       </InputOTPGroup>
                     </InputOTP>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-center"/>
                 </FormItem>
               )}
             />
@@ -178,27 +181,29 @@ export function VerifyForm() {
             </Button>
           </form>
         </Form>
-        <div className="mt-4 text-center text-sm">
-          Не получили код?{' '}
-          <Button
-            variant="link"
-            className="p-0 h-auto"
-            onClick={handleResendCode}
-            disabled={resendCooldown > 0 || isResending}
-          >
-            {isResending ? 'Отправка...' : (resendCooldown > 0 ? `Отправить повторно через ${resendCooldown}с` : 'Отправить повторно')}
-          </Button>
-        </div>
-         <div className="mt-2 text-center text-sm">
-          <Button
-            variant="link"
-            className="p-0 h-auto font-normal text-muted-foreground"
-            onClick={() => router.push('/login')}
-          >
-           Изменить номер телефона
-          </Button>
-        </div>
       </CardContent>
+       <CardFooter className="flex flex-col items-center justify-center space-y-2">
+           <div className="text-sm">
+              Не получили код?{' '}
+              <Button
+                variant="link"
+                className="p-0 h-auto"
+                onClick={handleResendCode}
+                disabled={resendCooldown > 0 || isResending}
+              >
+                {isResending ? 'Отправка...' : (resendCooldown > 0 ? `Повторить через ${resendCooldown}с` : 'Отправить снова')}
+              </Button>
+            </div>
+             <div className="text-sm">
+              <Button
+                variant="link"
+                className="p-0 h-auto font-normal text-muted-foreground"
+                onClick={() => router.push('/login')}
+              >
+               Изменить номер телефона
+              </Button>
+            </div>
+      </CardFooter>
     </Card>
   );
 }

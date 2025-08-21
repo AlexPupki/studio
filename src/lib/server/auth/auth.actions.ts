@@ -6,11 +6,11 @@ import {
   createRateLimiter,
   createSessionService,
   createSmsProvider,
-} from './auth.service';
+} from './auth.service.server';
 import { normalizePhone } from '@/lib/shared/phone.utils';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getFeature } from '../config';
+import { getFeature, getEnv } from '../config.server';
 
 // --- Сервисы ---
 const iamService = createIamService();
@@ -54,10 +54,13 @@ export async function requestLoginCode(phone: string) {
   }
 }
 
-export async function verifyLoginCode(input: {
-  phoneE164: string;
-  code: string;
-}) {
+const VerifyCodeInputSchema = z.object({
+  phoneE164: z.string(),
+  code: z.string(),
+  redirectTo: z.string().nullable().optional(),
+})
+
+export async function verifyLoginCode(input: z.infer<typeof VerifyCodeInputSchema>) {
   const rateLimitResult = await rateLimiter.check(
     `verify:phone:${input.phoneE164}`
   );
@@ -79,12 +82,16 @@ export async function verifyLoginCode(input: {
 
   cookies().set(cookie.name, cookie.value, cookie.options);
 
-  return { success: true, redirectTo: '/account' };
+  return { success: true, redirectTo: input.redirectTo || '/account' };
 }
 
 
 export async function getCurrentUser() {
-    const cookieValue = cookies().get(sessionService.getCookieName())?.value;
+    if (!getFeature('FEATURE_ACCOUNT')) {
+        return null;
+    }
+    const cookieName = getEnv('COOKIE_NAME');
+    const cookieValue = cookies().get(cookieName)?.value;
     if (!cookieValue) return null;
 
     const session = await sessionService.read(cookieValue);
@@ -93,21 +100,17 @@ export async function getCurrentUser() {
     // In a real app, you'd probably want to re-fetch the user from the DB
     // to ensure the data is fresh. For MVP, we trust the session.
     const user = await iamService.findUserById(session.userId);
-
-    if (!getFeature('FEATURE_ACCOUNT')) {
-        return null;
-    }
-
+    
     return user;
 }
 
 export async function logout() {
-    const cookieValue = cookies().get(sessionService.getCookieName())?.value;
+    const cookieName = getEnv('COOKIE_NAME');
+    const cookieValue = cookies().get(cookieName)?.value;
     if (cookieValue) {
         await sessionService.revoke(cookieValue);
     }
     // Clear the cookie by setting it with an expired date
-    const cookieName = sessionService.getCookieName();
     cookies().set(cookieName, '', { expires: new Date(0), path: '/' });
 
     redirect('/login');

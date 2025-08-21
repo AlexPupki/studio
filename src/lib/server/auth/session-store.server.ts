@@ -1,7 +1,7 @@
 'use server';
 
 import type { Session } from '@/lib/shared/iam.contracts';
-import { createDbService, type DbService } from '../db/db.service.server';
+import { redisClient } from '../redis';
 
 export interface SessionStore {
   get(sessionId: string): Promise<Session | null>;
@@ -9,33 +9,37 @@ export interface SessionStore {
   delete(sessionId: string): Promise<void>;
 }
 
-class DbSessionStore implements SessionStore {
-  private readonly key = 'sessions';
-  constructor(private db: DbService) {}
+class RedisSessionStore implements SessionStore {
+  private readonly prefix = 'session:';
 
-  private async getAllSessions(): Promise<Record<string, Session>> {
-    return this.db.get<Record<string, Session>>(this.key, {});
+  private getTtl(session: Session): number {
+    const now = new Date();
+    const expires = new Date(session.expiresAt);
+    return Math.round((expires.getTime() - now.getTime()) / 1000);
   }
 
   async get(sessionId: string): Promise<Session | null> {
-    const sessions = await this.getAllSessions();
-    return sessions[sessionId] || null;
+    const data = await redisClient.get(this.prefix + sessionId);
+    return data ? JSON.parse(data) : null;
   }
 
   async set(sessionId: string, session: Session): Promise<void> {
-    const sessions = await this.getAllSessions();
-    sessions[sessionId] = session;
-    await this.db.set(this.key, sessions);
+    const ttl = this.getTtl(session);
+    if (ttl > 0) {
+        await redisClient.set(
+            this.prefix + sessionId, 
+            JSON.stringify(session), 
+            'EX', 
+            ttl
+        );
+    }
   }
 
   async delete(sessionId: string): Promise<void> {
-    const sessions = await this.getAllSessions();
-    delete sessions[sessionId];
-    await this.db.set(this.key, sessions);
+    await redisClient.del(this.prefix + sessionId);
   }
 }
 
 export function createSessionStore(): SessionStore {
-    // In a real app, this could be a RedisSessionStore for better performance
-    return new DbSessionStore(createDbService());
+    return new RedisSessionStore();
 }

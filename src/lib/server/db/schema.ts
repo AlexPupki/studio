@@ -1,5 +1,5 @@
 import {
-  bigint,
+  boolean,
   char,
   check,
   integer,
@@ -7,15 +7,18 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
-  smallint,
+  serial,
   text,
   timestamp,
   uniqueIndex,
   uuid,
   index,
+  bigint,
 } from 'drizzle-orm/pg-core';
 
 // --- ENUMS ---
+export const userStatusEnum = pgEnum('user_status', ['active', 'blocked']);
+export const userRoleEnum = pgEnum('user_role', ['customer', 'staff', 'editor', 'ops.viewer', 'ops.editor', 'admin']);
 
 export const bookingStateEnum = pgEnum('booking_state', [
   'draft',
@@ -65,6 +68,25 @@ export const postStatusEnum = pgEnum('post_status', [
 
 
 // --- TABLES ---
+
+export const users = pgTable('users', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    phoneE164: text('phone_e164').notNull().unique(),
+    status: userStatusEnum('status').default('active').notNull(),
+    roles: userRoleEnum('roles').array().default(['customer']).notNull(),
+    preferredLanguage: char('preferred_language', { length: 2 }).default('ru').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const loginCodes = pgTable('login_codes', {
+    id: serial('id').primaryKey(),
+    phoneE164: text('phone_e164').notNull(),
+    codeHash: text('code_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    used: boolean('used').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const pages = pgTable('pages', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -241,7 +263,7 @@ export const requestLogs = pgTable('request_logs', {
   method: text('method').notNull(),
   path: text('path').notNull(),
   ip: text('ip'),
-  status: smallint('status').notNull(),
+  status: integer('status').notNull(),
   durationMs: integer('duration_ms').notNull(),
   errorCode: text('error_code'),
 });

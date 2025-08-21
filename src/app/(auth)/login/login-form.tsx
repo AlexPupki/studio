@@ -18,6 +18,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -87,11 +88,11 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
+    <Card className="w-full max-w-md shadow-2xl">
+      <CardHeader className="text-center">
         <CardTitle className="text-2xl">Вход или регистрация</CardTitle>
         <CardDescription>
-          Введите ваш номер телефона, чтобы получить код для входа
+          Введите ваш номер телефона для получения одноразового кода
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -120,7 +121,7 @@ export function LoginForm() {
               control={form.control}
               name="agreement"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-2">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -130,7 +131,7 @@ export function LoginForm() {
                   <div className="space-y-1 leading-none">
                     <FormLabel>
                       Я согласен с{' '}
-                      <Link href="#" className="underline">
+                      <Link href="#" className="underline hover:text-primary">
                         условиями использования
                       </Link>
                     </FormLabel>
@@ -152,6 +153,9 @@ export function LoginForm() {
           </form>
         </Form>
       </CardContent>
+       <CardFooter className="text-xs text-center text-muted-foreground">
+        <p>Мы никогда не передадим ваши данные третьим лицам.</p>
+      </CardFooter>
     </Card>
   );
 }
