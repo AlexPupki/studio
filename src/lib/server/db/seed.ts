@@ -1,5 +1,7 @@
 // tsx src/lib/server/db/seed.ts
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { db } from '.';
 import { users } from './schema';
 import { normalizePhone } from '@/lib/shared/phone.utils';
