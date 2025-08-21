@@ -1,3 +1,4 @@
+
 import { db } from "@/lib/server/db";
 import {
   Card,
@@ -37,7 +38,7 @@ export default async function OpsDashboard() {
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-wrap gap-2">
-             <Button asChild variant="secondary">
+             <Button asChild>
                 <Link href="/ops/dashboard">Бронирования</Link>
             </Button>
             <Button variant="outline" asChild>
