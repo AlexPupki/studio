@@ -1,3 +1,4 @@
+
 # Firebase Studio
 
 This is a NextJS starter in Firebase Studio.
@@ -16,6 +17,22 @@ This project uses Drizzle ORM to manage the database schema.
   ```bash
   npm run db:migrate
   ```
+- To seed the database with initial data (e.g., admin user), run:
+  ```bash
+  npm run db:seed
+  ```
+
+## CORS
+
+The Next.js application is configured with wide-open CORS headers for development purposes in `next.config.ts`.
+A `cors.json` file is also provided for configuring Google Cloud services like Cloud Storage.
+
+To apply this CORS configuration to your GCS bucket, you can use the `gcloud` CLI:
+```bash
+# Make sure you have the gcloud CLI installed and are authenticated.
+# Replace [YOUR_BUCKET_NAME] with your actual GCS bucket name (e.g., gs://grandtoursochi)
+gcloud storage buckets update [YOUR_BUCKET_NAME] --cors-file=./cors.json
+```
 
 ## Deploy
 

@@ -1,0 +1,9 @@
+
+[
+  {
+    "origin": ["*"],
+    "method": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "Idempotency-Key", "X-Requested-With"],
+    "maxAgeSeconds": 3600
+  }
+]
