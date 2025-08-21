@@ -1,12 +1,13 @@
+
 'use server';
 
 import { z } from 'zod';
 
 const EnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(), // Optional during build
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   REDIS_URL: z.string().url().optional(),
-  JWT_SECRET: z.string().min(32).optional(),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters long").optional(),
   GCS_BUCKET: z.string().min(1).optional(),
   BASE_CURRENCY: z.enum(['RUB', 'USD', 'EUR']).default('RUB'),
   DEFAULT_LOCALE: z.enum(['ru', 'en']).default('ru'),
