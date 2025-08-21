@@ -1,3 +1,4 @@
+
 import { redirect } from 'next/navigation';
 import {
   Card,
@@ -15,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { db } from '@/lib/server/db';
 import { bookings } from '@/lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import Link from 'next/link';
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { MainLayout } from '@/components/main-layout';
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -49,81 +50,83 @@ export default async function AccountPage() {
   const membershipLevel = 'Standard'; // Placeholder
 
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold font-heading">Личный кабинет</h1>
-        <p className="text-muted-foreground">Добро пожаловать, {userName}! Здесь вы можете управлять своим аккаунтом и бронированиями.</p>
-      </div>
-      <Separator/>
+    <MainLayout>
+        <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
+        <div className="space-y-2">
+            <h1 className="text-3xl font-bold font-heading">Личный кабинет</h1>
+            <p className="text-muted-foreground">Добро пожаловать, {userName}! Здесь вы можете управлять своим аккаунтом и бронированиями.</p>
+        </div>
+        <Separator/>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ваш профиль</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-medium text-sm text-muted-foreground">Номер телефона</h3>
-              <p>{user.phoneE164}</p>
+        <Card>
+            <CardHeader>
+            <CardTitle>Ваш профиль</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                <h3 className="font-medium text-sm text-muted-foreground">Номер телефона</h3>
+                <p>{user.phoneE164}</p>
+                </div>
+                <div>
+                <h3 className="font-medium text-sm text-muted-foreground">Уровень членства</h3>
+                <p>{membershipLevel}</p>
+                </div>
+                <div>
+                <h3 className="font-medium text-sm text-muted-foreground">Дата регистрации</h3>
+                <p>
+                    {new Date(user.createdAt).toLocaleDateString('ru-RU')}
+                </p>
+                </div>
             </div>
-             <div>
-              <h3 className="font-medium text-sm text-muted-foreground">Уровень членства</h3>
-              <p>{membershipLevel}</p>
-            </div>
-            <div>
-              <h3 className="font-medium text-sm text-muted-foreground">Дата регистрации</h3>
-              <p>
-                {new Date(user.createdAt).toLocaleDateString('ru-RU')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-            <form action={logout}>
-              <Button variant="outline" type="submit">
-                Выйти
-              </Button>
-            </form>
-        </CardFooter>
-      </Card>
+            </CardContent>
+            <CardFooter>
+                <form action={logout}>
+                <Button variant="outline" type="submit">
+                    Выйти
+                </Button>
+                </form>
+            </CardFooter>
+        </Card>
 
-      <Card>
-        <CardHeader>
-            <CardTitle>Последние бронирования</CardTitle>
-            <CardDescription>Ваши последние 5 бронирований.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Код</TableHead>
-                        <TableHead>Статус</TableHead>
-                        <TableHead>Кол-во</TableHead>
-                        <TableHead>Дата</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {userBookings.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">У вас еще нет бронирований.</TableCell>
-                    </TableRow>
-                  )}
-                  {userBookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                        <TableCell className="font-mono">{booking.code}</TableCell>
-                         <TableCell>
-                            <Badge variant={booking.state === 'confirm' ? 'default' : 'secondary'}>
-                              {booking.state}
-                            </Badge>
-                         </TableCell>
-                        <TableCell>{booking.qty}</TableCell>
-                        <TableCell>{booking.createdAt?.toLocaleDateString('ru-RU')}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
-    </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Последние бронирования</CardTitle>
+                <CardDescription>Ваши последние 5 бронирований.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Код</TableHead>
+                            <TableHead>Статус</TableHead>
+                            <TableHead>Кол-во</TableHead>
+                            <TableHead>Дата</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {userBookings.length === 0 && (
+                        <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24">У вас еще нет бронирований.</TableCell>
+                        </TableRow>
+                    )}
+                    {userBookings.map((booking) => (
+                        <TableRow key={booking.id}>
+                            <TableCell className="font-mono">{booking.code}</TableCell>
+                            <TableCell>
+                                <Badge variant={booking.state === 'confirm' ? 'default' : 'secondary'}>
+                                {booking.state}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>{booking.qty}</TableCell>
+                            <TableCell>{booking.createdAt?.toLocaleDateString('ru-RU')}</TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+        </div>
+    </MainLayout>
   );
 }

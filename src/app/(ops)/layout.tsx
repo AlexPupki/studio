@@ -1,18 +1,25 @@
+
 import { getCurrentUser } from '@/lib/server/auth/auth.actions';
-import { MainLayout } from '@/components/main-layout';
+import { OpsLayout } from './ops-layout';
 import { redirect } from 'next/navigation';
 
-export default async function OpsLayout({
+export default async function ProtectedOpsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
   
-  // A simple check. In a real app, this should check for specific roles.
   if (!user) {
     redirect('/login?next=/ops/dashboard');
   }
 
-  return <MainLayout>{children}</MainLayout>;
+  // More granular role checks can be done here or in middleware
+  const canAccessOps = user.roles.some(role => role.startsWith('ops.'));
+  if (!canAccessOps) {
+      redirect('/account?error=forbidden');
+  }
+
+
+  return <OpsLayout user={user}>{children}</OpsLayout>;
 }

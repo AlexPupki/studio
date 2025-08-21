@@ -18,8 +18,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { desc } from "drizzle-orm";
 import { auditEvents } from "@/lib/server/db/schema";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 function getActorBadgeVariant(actorType: string) {
   switch (actorType) {
@@ -47,20 +45,6 @@ export default async function OpsLogsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-                <Link href="/ops/dashboard">Бронирования</Link>
-            </Button>
-            <Button asChild>
-                <Link href="/ops/logs">Журнал действий</Link>
-            </Button>
-             <Button variant="outline" asChild>
-                <Link href="/ops/catalog">Каталог</Link>
-            </Button>
-             <Button variant="outline" asChild>
-                <Link href="/ops/content">Контент</Link>
-            </Button>
-          </div>
           <Table>
             <TableHeader>
               <TableRow>

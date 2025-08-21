@@ -1,5 +1,4 @@
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
 
 export default function OpsDashboard() {
   return (
@@ -16,26 +14,12 @@ export default function OpsDashboard() {
         <CardHeader>
           <CardTitle>Панель оператора</CardTitle>
           <CardDescription>
-            Обзор и управление системой.
+            Добро пожаловать в панель управления. Для навигации используйте меню слева.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex flex-wrap gap-2">
-            <Button asChild>
-              <Link href="/ops/bookings">Бронирования</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/ops/logs">Журнал действий</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/ops/routes">Каталог</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/ops/content">Контент</Link>
-            </Button>
-          </div>
           <div className="border rounded-lg p-8 text-center text-muted-foreground">
-            <p>Добро пожаловать в панель управления. Для навигации используйте меню выше.</p>
+            <p>Выберите раздел в меню, чтобы начать работу.</p>
           </div>
         </CardContent>
       </Card>

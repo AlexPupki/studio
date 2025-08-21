@@ -16,8 +16,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { bookings } from "@/lib/server/db/schema";
 
@@ -31,18 +29,12 @@ export default async function OpsBookingsPage() {
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle>Бронирования</CardTitle>
+          <CardTitle>Последние бронирования</CardTitle>
           <CardDescription>
-            Обзор последних бронирований в системе.
+            Обзор 10 последних бронирований в системе.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-             <Button variant="outline" asChild>
-                <Link href="/ops/dashboard">Назад к панели</Link>
-            </Button>
-          </div>
-           <h3 className="text-lg font-semibold mb-2">Последние бронирования</h3>
           <Table>
             <TableHeader>
               <TableRow>
