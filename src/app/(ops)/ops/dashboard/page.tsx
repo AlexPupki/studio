@@ -20,43 +20,28 @@ export default function OpsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Маршруты</CardTitle>
-                <CardDescription>Управление услугами и маршрутами.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <Button asChild>
-                    <Link href="/ops/routes">Перейти к маршрутам</Link>
-                 </Button>
-              </CardContent>
-            </Card>
-             <Card>
-              <CardHeader>
-                <CardTitle>Бронирования</CardTitle>
-                <CardDescription>Просмотр и управление бронированиями.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <Button asChild variant="outline">
-                    <Link href="/ops/bookings">Перейти к бронированиям</Link>
-                 </Button>
-              </CardContent>
-            </Card>
-             <Card>
-              <CardHeader>
-                <CardTitle>Журнал действий</CardTitle>
-                <CardDescription>Просмотр всех событий в системе.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <Button asChild variant="outline">
-                    <Link href="/ops/logs">Перейти к журналу</Link>
-                 </Button>
-              </CardContent>
-            </Card>
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button variant="secondary" asChild>
+              <Link href="/ops/bookings">Бронирования</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/ops/logs">Журнал действий</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/ops/routes">Каталог</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/ops/content">Контент</Link>
+            </Button>
+          </div>
+          <div className="border rounded-lg p-8 text-center text-muted-foreground">
+            <p>Раздел управления бронированиями.</p>
+             <p className="text-sm">Для навигации используйте меню выше.</p>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

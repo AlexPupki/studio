@@ -279,3 +279,5 @@ export const auditEvents = pgTable('audit_events', {
   entityId: text('entity_id'),
   data: jsonb('data'),
 });
+
+    
