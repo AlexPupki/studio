@@ -24,11 +24,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-  },
   async headers() {
     return [
       {
