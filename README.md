@@ -31,38 +31,47 @@ To apply this CORS configuration to your GCS bucket, you can use the `gcloud` CL
 ```bash
 # Make sure you have the gcloud CLI installed and are authenticated.
 # Replace [YOUR_BUCKET_NAME] with your actual GCS bucket name (e.g., gs://grandtoursochi)
-gcloud storage buckets update [YOUR_BUCKET_NAME] --cors-file=./cors.json
+gcloud storage buckets update gs://[YOUR_BUCKET_NAME] --cors-file=./cors.json
 ```
 
 ## Deploy
 
 This project is configured for deployment on Firebase App Hosting.
 
-**IMPORTANT:** The production environment for this stage has limitations. It does **not** include advanced SEO, multi-locale routing, or observability stacks like Sentry/OTEL.
-
 ### 1. Set up secrets
 
-Store your production environment variables in Google Secret Manager.
+For production, it is crucial to store your environment variables securely in a secret manager like Google Secret Manager. Below is an example of how to set up the most critical secrets.
 
 ```bash
 # Replace [YOUR_PROJECT_ID] with your Google Cloud project ID
+
+# Database URL
 gcloud secrets create "DATABASE_URL" --project="[YOUR_PROJECT_ID]"
 gcloud secrets versions add "DATABASE_URL" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "postgres://user:pass@host:port/db"
 
-gcloud secrets create "REDIS_URL" --project="[YOUR_PROJECT_ID]"
-gcloud secrets versions add "REDIS_URL" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "redis://..."
+# Session Secret Key (generate a long random string)
+gcloud secrets create "SESSION_SECRET_KEY" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "SESSION_SECRET_KEY" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_super_secret_session_key_32_chars_long"
 
-gcloud secrets create "JWT_SECRET" --project="[YOUR_PROJECT_ID]"
-gcloud secrets versions add "JWT_SECRET" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_super_secret_jwt_string"
+# Gemini API Key
+gcloud secrets create "GEMINI_API_KEY" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "GEMINI_API_KEY" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_gemini_api_key"
+
+# GCS Bucket Name
+gcloud secrets create "GCS_BUCKET" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "GCS_BUCKET" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-gcs-bucket-name"
 
 # Grant the App Hosting service account access to the secrets
-# You can find the service account email in the Google Cloud console
+# You can find the service account email in the Google Cloud console under IAM.
+# It usually looks like service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com
+SERVICE_ACCOUNT_EMAIL="service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com"
+
 gcloud secrets add-iam-policy-binding "DATABASE_URL" \
     --project="[YOUR_PROJECT_ID]" \
-    --member="serviceAccount:service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com" \
+    --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
     --role="roles/secretmanager.secretAccessor"
 
-# Repeat for REDIS_URL and JWT_SECRET
+# Repeat the binding for each secret: SESSION_SECRET_KEY, GEMINI_API_KEY, GCS_BUCKET etc.
 ```
 
 ### 2. Deploy
