@@ -6,10 +6,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
-  SidebarInset,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuButton,
   SidebarProvider,
   SidebarTrigger,
   SidebarFooter,
@@ -19,7 +18,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { User as UserType } from '@/lib/shared/iam.contracts';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { logout } from '@/lib/server/auth/user.actions';
 import { cn } from '@/lib/utils';
 
@@ -81,11 +80,11 @@ export function OpsLayout({ children, user }: { children: React.ReactNode, user:
             </form>
         </SidebarFooter>
       </Sidebar>
-      <main className={cn(
+      <div className={cn(
         "flex flex-col flex-1",
         "md:ml-[var(--sidebar-width)] group-data-[collapsible=icon]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]"
        )}>
-        <header className="flex h-14 items-center justify-between border-b bg-card p-4">
+        <header className="flex h-14 items-center justify-between border-b bg-card p-4 sticky top-0 z-30">
             <div className="md:hidden">
                  <SidebarTrigger />
             </div>
@@ -97,10 +96,10 @@ export function OpsLayout({ children, user }: { children: React.ReactNode, user:
                 </Button>
             </div>
         </header>
-        <div className="flex-1 overflow-auto bg-muted/40 flex flex-col">
+        <main className="flex-1 overflow-auto bg-muted/40 flex flex-col">
             {children}
-        </div>
-       </main>
+        </main>
+       </div>
     </div>
     </SidebarProvider>
   );
