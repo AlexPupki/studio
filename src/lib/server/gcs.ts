@@ -7,6 +7,9 @@ let storage: Storage | undefined;
 
 function getStorageClient(): Storage {
     if (!storage) {
+        // The Storage client automatically uses Application Default Credentials.
+        // It will use GOOGLE_APPLICATION_CREDENTIALS environment variable if it's set,
+        // or the attached service account in a Google Cloud environment.
         storage = new Storage();
     }
     return storage;
@@ -14,7 +17,6 @@ function getStorageClient(): Storage {
 
 /**
  * Generates a v4 signed URL for uploading a file to GCS.
- * @param bucketName The name of the GCS bucket.
  * @param fileName The name of the file to upload.
  * @param contentType The MIME type of the file.
  * @param expiresIn The URL expiration time in seconds.

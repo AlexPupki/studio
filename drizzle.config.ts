@@ -8,14 +8,18 @@ if (!process.env.DATABASE_URL) {
 
 const connectionString = process.env.DATABASE_URL;
 const dbConfig = parse(connectionString);
-const isCloudSql = !!process.env.DB_SOCKET_PATH;
+
+// For local development, drizzle-kit connects directly via TCP.
+// For production environments (like Cloud Run with a socket), migrations are
+// typically run in a separate environment or CI/CD step that also connects via TCP.
+// The socket connection logic is primarily for the running application, not for drizzle-kit.
 
 export default defineConfig({
   dialect: "postgresql",
   schema: "./src/lib/server/db/schema.ts",
   out: "./src/lib/server/db/migrations",
   dbCredentials: {
-    host: isCloudSql ? `${process.env.DB_SOCKET_PATH}/${dbConfig.host}` : dbConfig.host!,
+    host: dbConfig.host!,
     port: dbConfig.port ? parseInt(dbConfig.port) : 5432,
     user: dbConfig.user,
     password: dbConfig.password,
