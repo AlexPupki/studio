@@ -1,4 +1,3 @@
-
 // This file is being kept for now in case stateful sessions are needed for other purposes,
 // but it is no longer used for the primary authentication flow in middleware.
 // For example, it could be used to track active user sessions for an admin dashboard.
@@ -22,11 +21,13 @@ class RedisSessionStore implements SessionStore {
   }
 
   async get(sessionId: string): Promise<Session | null> {
+    if (!redisClient) return null;
     const data = await redisClient.get(this.prefix + sessionId);
     return data ? JSON.parse(data) : null;
   }
 
   async set(sessionId: string, session: Session): Promise<void> {
+    if (!redisClient) return;
     const ttl = this.getTtl(session);
     if (ttl > 0) {
         await redisClient.set(
@@ -39,6 +40,7 @@ class RedisSessionStore implements SessionStore {
   }
 
   async delete(sessionId: string): Promise<void> {
+    if (!redisClient) return;
     await redisClient.del(this.prefix + sessionId);
   }
 }

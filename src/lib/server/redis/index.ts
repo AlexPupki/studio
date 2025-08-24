@@ -1,5 +1,4 @@
 
-'use server';
 
 import Redis from 'ioredis';
 import { getEnv } from '../config.server';
