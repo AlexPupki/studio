@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run dev:web",
-    "dev:all": "npm-run-all --parallel dev:web dev:cms",
+    "dev": "npm run dev --workspace apps/web",
     "dev:web": "npm run dev --workspace apps/web",
     "dev:cms": "npm run dev --workspace apps/cms",
+    "dev:all": "npm-run-all --parallel dev:web dev:cms",
     "build": "npm run build --workspaces",
     "start": "npm run start --workspace apps/web",
     "lint": "npm run lint --workspace apps/web",
