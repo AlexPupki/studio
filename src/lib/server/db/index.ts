@@ -1,4 +1,3 @@
-'use server';
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, type PoolConfig } from 'pg';

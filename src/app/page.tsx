@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/server/db";
-import { routes } from "@/lib/server/db/schema";
+import { routes, type routes as RoutesTable } from "@/lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,10 +11,18 @@ import { MainLayout } from "@/components/main-layout";
 
 export default async function Home() {
 
-  const featuredRoutes = await db.query.routes.findMany({
-    where: eq(routes.status, 'active'),
-    limit: 3,
-  });
+  let featuredRoutes: (typeof RoutesTable.$inferSelect)[] = [];
+  try {
+    featuredRoutes = await db.query.routes.findMany({
+      where: eq(routes.status, 'active'),
+      limit: 3,
+    });
+  } catch (error) {
+    console.error("Failed to fetch featured routes:", error);
+    // The table might not exist yet, so we'll just show an empty list.
+    // The underlying issue needs to be fixed by running migrations.
+  }
+
 
   return (
     <MainLayout>
@@ -48,6 +56,11 @@ export default async function Home() {
                 </CardFooter>
             </Card>
             ))}
+             {featuredRoutes.length === 0 && (
+                <div className="col-span-full text-center text-muted-foreground p-8">
+                    <p>Популярные маршруты скоро появятся здесь.</p>
+                </div>
+             )}
         </div>
 
         <div className="text-center py-8">
