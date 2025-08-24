@@ -9,19 +9,15 @@ export default async function ProtectedOpsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Do not render the main OPS layout for the login page itself
-  const pathname = headers().get('x-next-pathname');
-  if (pathname === '/ops/login') {
-    return <>{children}</>;
-  }
-
   const user = await getCurrentUser();
   
   if (!user) {
+    // This case is primarily handled by middleware, but as a fallback.
+    const pathname = headers().get('x-next-pathname') || '/ops';
     redirect('/ops/login?next=' + pathname);
   }
 
-  const canAccessOps = user.roles.some(role => role.startsWith('ops.'));
+  const canAccessOps = user.roles.some(role => role.startsWith('ops.') || role === 'admin');
   if (!canAccessOps) {
       redirect('/account?error=forbidden');
   }
