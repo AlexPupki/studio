@@ -1,43 +1,42 @@
-
-
 'use server';
 
-import { Storage, StorageOptions } from '@google-cloud/storage';
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getEnv } from './config.server';
 
-let storage: Storage | undefined;
+let s3Client: S3Client | undefined;
 
-function getStorageClient(): Storage {
-    if (storage) {
-        return storage;
+function getS3Client(): S3Client {
+    if (s3Client) {
+        return s3Client;
+    }
+
+    const endpoint = getEnv('S3_ENDPOINT_URL');
+    const region = getEnv('S3_REGION');
+    const accessKeyId = getEnv('S3_ACCESS_KEY_ID');
+    const secretAccessKey = getEnv('S3_SECRET_ACCESS_KEY');
+
+    if (!endpoint || !region || !accessKeyId || !secretAccessKey) {
+        throw new Error("S3 client configuration is incomplete. Please check environment variables.");
     }
     
-    const projectId = getEnv('GCS_PROJECT_ID');
-    const clientEmail = getEnv('GCS_CLIENT_EMAIL');
-    const privateKey = getEnv('GCS_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+    console.log(`Initializing S3 client for endpoint: ${endpoint} and region: ${region}`);
 
-    const options: StorageOptions = {};
+    s3Client = new S3Client({
+        endpoint,
+        region,
+        credentials: {
+            accessKeyId,
+            secretAccessKey,
+        },
+        forcePathStyle: true, // Important for GCS and other S3-compatible services
+    });
 
-    if (projectId && clientEmail && privateKey) {
-        // If individual credential components are provided, use them.
-        options.projectId = projectId;
-        options.credentials = {
-            client_email: clientEmail,
-            private_key: privateKey,
-        };
-        console.log("Initializing GCS client with credentials from environment variables.");
-    } else {
-        // Otherwise, fall back to Application Default Credentials (ADC).
-        // This will work automatically in Google Cloud environments.
-        console.log("Initializing GCS client with Application Default Credentials.");
-    }
-
-    storage = new Storage(options);
-    return storage;
+    return s3Client;
 }
 
 /**
- * Generates a v4 signed URL for uploading a file to GCS.
+ * Generates a pre-signed URL for uploading a file to an S3-compatible storage.
  * @param fileName The name of the file to upload.
  * @param contentType The MIME type of the file.
  * @returns The signed URL and the final file path.
@@ -46,53 +45,45 @@ export async function generateUploadUrl(
     fileName: string,
     contentType: string,
 ): Promise<{ url: string; path: string }> {
-    const bucketName = getEnv('GCS_BUCKET');
+    const bucketName = getEnv('S3_BUCKET_NAME');
      if (!bucketName) {
-        throw new Error("GCS_BUCKET environment variable is not set.");
+        throw new Error("S3_BUCKET_NAME environment variable is not set.");
     }
-    const storageClient = getStorageClient();
-    const expiresIn = getEnv('GCS_SIGNED_URL_TTL_SECONDS');
+    const client = getS3Client();
+    const expiresIn = getEnv('S3_SIGNED_URL_TTL_SECONDS');
 
-    const options = {
-        version: 'v4' as const,
-        action: 'write' as const,
-        expires: Date.now() + expiresIn * 1000,
-        contentType,
-    };
-
-    const [url] = await storageClient
-        .bucket(bucketName)
-        .file(fileName)
-        .getSignedUrl(options);
+    const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: fileName,
+        ContentType: contentType,
+    });
+    
+    const url = await getSignedUrl(client, command, { expiresIn });
 
     return { url, path: fileName };
 }
 
 /**
- * Generates a v4 signed URL for downloading a file from GCS.
+ * Generates a pre-signed URL for downloading a file from an S3-compatible storage.
  * @param filePath The full path to the file in the bucket.
  * @returns The signed URL.
  */
 export async function generateDownloadUrl(
     filePath: string,
 ): Promise<string> {
-    const bucketName = getEnv('GCS_BUCKET');
+    const bucketName = getEnv('S3_BUCKET_NAME');
      if (!bucketName) {
-        throw new Error("GCS_BUCKET environment variable is not set.");
+        throw new Error("S3_BUCKET_NAME environment variable is not set.");
     }
-    const storageClient = getStorageClient();
-    const expiresIn = getEnv('GCS_SIGNED_URL_TTL_SECONDS');
+    const client = getS3Client();
+    const expiresIn = getEnv('S3_SIGNED_URL_TTL_SECONDS');
 
-    const options = {
-        version: 'v4' as const,
-        action: 'read' as const,
-        expires: Date.now() + expiresIn * 1000,
-    };
+     const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: filePath,
+    });
 
-    const [url] = await storageClient
-        .bucket(bucketName)
-        .file(filePath)
-        .getSignedUrl(options);
+    const url = await getSignedUrl(client, command, { expiresIn });
 
     return url;
 }

@@ -1,5 +1,4 @@
 
-
 import { z } from 'zod';
 
 const optionalString = (schema: z.ZodString) =>
@@ -32,12 +31,15 @@ const EnvSchema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   LOGIN_CODE_TTL_MINUTES: z.coerce.number().int().positive().default(5),
   
-  // --- Google Cloud ---
-  GCS_BUCKET: optionalString(z.string().min(1, 'GCS_BUCKET is required.')),
-  GCS_PROJECT_ID: optionalString(z.string()),
-  GCS_CLIENT_EMAIL: optionalString(z.string().email()),
-  GCS_PRIVATE_KEY: optionalString(z.string()),
-  GCS_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
+  // --- S3-Compatible Storage ---
+  S3_ENDPOINT_URL: optionalString(z.string().url()),
+  S3_BUCKET_NAME: optionalString(z.string()),
+  S3_REGION: optionalString(z.string()),
+  S3_ACCESS_KEY_ID: optionalString(z.string()),
+  S3_SECRET_ACCESS_KEY: optionalString(z.string()),
+  S3_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
+  
+  // --- Gemini AI ---
   GEMINI_API_KEY: optionalString(z.string()),
   
   // --- YCLIENTS Integration ---

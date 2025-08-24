@@ -74,6 +74,16 @@ gcloud secrets versions add "SESSION_SECRET_KEY" --project="[YOUR_PROJECT_ID]" -
 gcloud secrets create "PEPPER" --project="[YOUR_PROJECT_ID]"
 gcloud secrets versions add "PEPPER" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your_super_secret_pepper_16_chars_long"
 
+# S3-Compatible Storage Secrets
+gcloud secrets create "S3_BUCKET_NAME" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "S3_BUCKET_NAME" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-bucket-name"
+
+gcloud secrets create "S3_ACCESS_KEY_ID" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "S3_ACCESS_KEY_ID" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-s3-access-key-id"
+
+gcloud secrets create "S3_SECRET_ACCESS_KEY" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "S3_SECRET_ACCESS_KEY" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-s3-secret-access-key"
+
 
 # Grant the App Hosting service account access to the secrets
 # You can find the service account email in the Google Cloud console
@@ -82,7 +92,7 @@ gcloud secrets add-iam-policy-binding "PG_HOST" \
     --member="serviceAccount:service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-# Repeat for PG_USER, PG_PASSWORD, PG_DATABASE, REDIS_URL, JWT_SECRET, CRON_SECRET, SESSION_SECRET_KEY, and PEPPER
+# Repeat for all other secrets: PG_USER, PG_PASSWORD, PG_DATABASE, REDIS_URL, JWT_SECRET, CRON_SECRET, SESSION_SECRET_KEY, PEPPER, S3_BUCKET_NAME, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY
 ```
 
 ### 2. Deploy
