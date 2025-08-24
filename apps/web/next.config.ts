@@ -38,13 +38,11 @@ const nextConfig: NextConfig = {
     ]
   },
   async rewrites() {
+    const cmsUrl = `http://${process.env.HOST_CMS || 'localhost'}:${process.env.PORT_CMS || 9003}`;
     return [
       {
         source: '/cms/:path*',
-        destination:
-          process.env.NODE_ENV === 'development'
-            ? 'http://localhost:9003/:path*'
-            : 'http://localhost:9003/:path*',
+        destination: `${cmsUrl}/:path*`,
       },
     ]
   },

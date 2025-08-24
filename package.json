@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev:web",
-    "dev:web": "PORT=${npm_config_port:-9002} HOST=${npm_config_hostname:-0.0.0.0} npm run dev --workspace apps/web",
-    "dev:cms": "PORT=${npm_config_port:-9003} HOST=${npm_config_hostname:-0.0.0.0} npm run dev --workspace apps/cms",
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:cms": "npm run dev --workspace apps/cms",
     "dev:all": "npm-run-all --parallel dev:web dev:cms",
     "build": "npm run build --workspaces",
     "start": "npm run start --workspace apps/web",
