@@ -9,22 +9,31 @@ const EnvSchema = z.object({
   
   // --- Core ---
   APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL.').default('http://localhost:3002'),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.'),
-  REDIS_URL: z.string().min(1, 'REDIS_URL is required.'),
+  
+  // --- PostgreSQL Database ---
+  PG_HOST: optionalString(z.string().min(1, 'PG_HOST is required.')),
+  PG_PORT: z.coerce.number().int().positive().default(5432),
+  PG_USER: optionalString(z.string().min(1, 'PG_USER is required.')),
+  PG_PASSWORD: optionalString(z.string().min(1, 'PG_PASSWORD is required.')),
+  PG_DATABASE: optionalString(z.string().min(1, 'PG_DATABASE is required.')),
+  DB_SOCKET_PATH: optionalString(z.string()),
+
+
+  // --- Redis ---
+  REDIS_URL: optionalString(z.string().min(1, 'REDIS_URL is required.')),
 
   // --- Security ---
-  SESSION_SECRET_KEY: z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.'),
-  PEPPER: z.string().min(16, 'PEPPER must be at least 16 characters.'),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters.'),
-  CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters.'),
+  SESSION_SECRET_KEY: optionalString(z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.')),
+  PEPPER: optionalString(z.string().min(16, 'PEPPER must be at least 16 characters.')),
+  JWT_SECRET: optionalString(z.string().min(32, 'JWT_SECRET must be at least 32 characters.')),
+  CRON_SECRET: optionalString(z.string().min(32, 'CRON_SECRET must be at least 32 characters.')),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   LOGIN_CODE_TTL_MINUTES: z.coerce.number().int().positive().default(5),
   
   // --- Google Cloud ---
-  GCS_BUCKET: z.string().min(1, 'GCS_BUCKET is required.'),
-  // This is optional because in a Cloud Run environment, the SDK uses the attached service account.
-  // For local development, this should contain the JSON key.
+  GCS_BUCKET: optionalString(z.string().min(1, 'GCS_BUCKET is required.')),
+  GCS_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
   GOOGLE_APPLICATION_CREDENTIALS_JSON: optionalString(z.string()),
   GEMINI_API_KEY: optionalString(z.string()),
   
@@ -41,6 +50,17 @@ const EnvSchema = z.object({
 
   // --- Analytics ---
   NEXT_PUBLIC_GA_MEASUREMENT_ID: optionalString(z.string()),
+  
+  // --- Rate Limiting ---
+  RL_BOOKING_DRAFT_LIMIT: z.coerce.number().int().positive().default(10),
+  RL_BOOKING_DRAFT_WINDOW: z.coerce.number().int().positive().default(60), // in seconds
+  RL_BOOKING_DRAFT_PHONE_LIMIT: z.coerce.number().int().positive().default(5),
+  RL_BOOKING_DRAFT_PHONE_WINDOW: z.coerce.number().int().positive().default(300), // in seconds
+  RL_BOOKING_HOLD_LIMIT: z.coerce.number().int().positive().default(10),
+  RL_BOOKING_HOLD_WINDOW: z.coerce.number().int().positive().default(60), // in seconds
+  RL_BOOKING_CONFIRM_LIMIT: z.coerce.number().int().positive().default(10),
+  RL_BOOKING_CONFIRM_WINDOW: z.coerce.number().int().positive().default(60), // in seconds
+
 });
 
 

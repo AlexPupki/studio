@@ -1,29 +1,22 @@
 import { defineConfig } from "drizzle-kit";
-import { parse } from 'pg-connection-string';
 import 'dotenv/config';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set in the environment variables');
+if (!process.env.PG_HOST || !process.env.PG_USER || !process.env.PG_DATABASE) {
+  // Don't throw an error, just log it. This allows the app to start
+  // without a fully configured DB, which is useful for frontend development.
+  console.warn('Database connection details are not fully set in the environment variables. Drizzle Kit may not work correctly.');
 }
-
-const connectionString = process.env.DATABASE_URL;
-const dbConfig = parse(connectionString);
-
-// For local development, drizzle-kit connects directly via TCP.
-// For production environments (like Cloud Run with a socket), migrations are
-// typically run in a separate environment or CI/CD step that also connects via TCP.
-// The socket connection logic is primarily for the running application, not for drizzle-kit.
 
 export default defineConfig({
   dialect: "postgresql",
   schema: "./src/lib/server/db/schema.ts",
   out: "./src/lib/server/db/migrations",
   dbCredentials: {
-    host: dbConfig.host!,
-    port: dbConfig.port ? parseInt(dbConfig.port) : 5432,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    database: dbConfig.database!,
+    host: process.env.PG_HOST!,
+    port: process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432,
+    user: process.env.PG_USER,
+    password: process.env.PG_PASSWORD,
+    database: process.env.PG_DATABASE!,
   },
   verbose: true,
   strict: true,
