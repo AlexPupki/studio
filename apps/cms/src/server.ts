@@ -21,7 +21,9 @@ const start = async () => {
 
   // Add your own express routes here
 
-  app.listen(9003)
+  app.listen(process.env.PORT || 9003, () => {
+    payload.logger.info(`CMS server started on port ${process.env.PORT || 9003}`)
+  })
 }
 
 start()
