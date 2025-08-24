@@ -25,7 +25,7 @@ const EnvSchema = z.object({
   // --- Security ---
   SESSION_SECRET_KEY: z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.'),
   PEPPER: z.string().min(16, 'PEPPER must be at least 16 characters.'),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters.'),
+  JWT_SECRET: optionalString(z.string().min(32, 'JWT_SECRET must be at least 32 characters.')),
   CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters.'),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
