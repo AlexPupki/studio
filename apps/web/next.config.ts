@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  experimental: {
+    // Разрешаем CORS запросы в dev-режиме от cloud-воркстанций
+    allowedDevOrigins: ["*.cloudworkstations.dev"],
+  },
   async headers() {
     return [
       {

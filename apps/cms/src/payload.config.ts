@@ -15,6 +15,14 @@ export default buildConfig({
     // In a real app, you would configure a user collection here.
     // user: Users.slug,
   },
+  cors: [
+    // Разрешаем запросы от нашего веб-приложения
+    process.env.APP_BASE_URL || 'http://localhost:9002'
+  ],
+  csrf: [
+    // Добавляем домен в доверенные для CSRF
+    process.env.APP_BASE_URL || 'http://localhost:9002'
+  ],
   editor: slateEditor({}),
   collections: [Examples],
   typescript: {

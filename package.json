@@ -4,10 +4,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev-web.mjs",
+    "dev": "node scripts/dev-all.mjs",
     "dev:web": "node scripts/dev-web.mjs",
-    "dev:cms": "npm run -w apps/cms dev",
-    "dev:all": "npm-run-all --parallel dev:web dev:cms",
+    "dev:cms": "node scripts/dev-cms.mjs",
     "build": "npm run -w apps/web build && npm run -w apps/cms build",
     "start": "npm run -w apps/web start",
     "lint": "pnpm run lint --workspace apps/web",
