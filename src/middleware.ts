@@ -1,7 +1,9 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { getFeature, getEnv } from '@/lib/server/config.server';
 import { getCurrentUser } from './lib/server/auth/auth.actions';
 
+export const runtime = 'nodejs';
 
 async function handleOpsRoutes(request: NextRequest) {
     const user = await getCurrentUser(); // This now reads the session cookie and gets user data
