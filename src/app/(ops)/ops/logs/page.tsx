@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -99,14 +100,14 @@ export default function OpsLogsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8">
-      <Card>
+    <div className="p-4 md:p-8 flex flex-col h-full">
+      <Card className="flex flex-col flex-1">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
               <CardTitle>Журнал Приложения (debug.log)</CardTitle>
               <CardDescription>
-                Просмотр системных логов. Размер файла: {(logs?.size ?? 0 / 1024).toFixed(2)} KB.
+                Просмотр системных логов. Размер файла: {(logs ? logs.size / 1024 : 0).toFixed(2)} KB.
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -141,9 +142,9 @@ export default function OpsLogsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 flex flex-col">
           <ScrollArea
-            className="h-[60vh] w-full rounded-md border bg-muted"
+            className="flex-1 w-full rounded-md border bg-muted"
             ref={logContainerRef}
           >
             <pre className="p-4 text-xs font-mono whitespace-pre-wrap break-all">

@@ -7,7 +7,8 @@ type LogFormat = 'text' | 'json';
 
 const LOG_LEVEL: LogLevel = (process.env.LOG_LEVEL?.toUpperCase() as LogLevel) || 'DEBUG';
 const LOG_FORMAT: LogFormat = (process.env.LOG_FORMAT?.toLowerCase() as LogFormat) || 'text';
-const LOG_FILE_PATH = path.join(process.cwd(), 'public', 'debug.log');
+const LOG_DIR = path.join(process.cwd(), 'public');
+const LOG_FILE_PATH = path.join(LOG_DIR, 'debug.log');
 
 const LOG_LEVELS: Record<LogLevel, number> = {
   DEBUG: 0,
@@ -24,6 +25,19 @@ class Logger {
   constructor(category = 'APP') {
     this.category = category;
   }
+
+  private ensureLogFileExists() {
+      try {
+        if (!fs.existsSync(LOG_DIR)) {
+          fs.mkdirSync(LOG_DIR, { recursive: true });
+        }
+        // Touch the file to ensure it exists
+        fs.closeSync(fs.openSync(LOG_FILE_PATH, 'a'));
+      } catch (err) {
+        console.error('Failed to ensure log file exists:', err);
+      }
+  }
+
 
   private shouldLog(level: LogLevel): boolean {
     return LOG_LEVELS[level] >= LOG_LEVELS[LOG_LEVEL];
@@ -54,7 +68,7 @@ class Logger {
     if (!this.shouldLog(level)) {
       return;
     }
-
+    this.ensureLogFileExists();
     const formattedMessage = this.formatMessage(level, message, context);
     const rawMessage = `${formattedMessage}\n`;
 
