@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --workspace apps/web",
+    "dev": "npm run dev:web",
     "dev:all": "npm install --workspaces --if-present && npm-run-all --parallel dev:web dev:cms",
     "dev:web": "npm run dev --workspace apps/web",
     "dev:cms": "npm run dev --workspace apps/cms",

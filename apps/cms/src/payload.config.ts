@@ -1,16 +1,12 @@
+
 import { buildConfig } from 'payload/config'
 import path from 'path'
 import { slateEditor } from '@payloadcms/richtext-slate'
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { Examples } from './collections/Examples'
 import 'dotenv/config'
 
-import { Examples } from './collections/Examples'
-
-if (!process.env.PG_HOST || !process.env.PG_USER || !process.env.PG_DATABASE) {
-  throw new Error(
-    'Database connection details are not fully set in environment variables.'
-  )
-}
+const MOCK_DB = process.env.NODE_ENV === 'test' || !process.env.PG_HOST
 
 export default buildConfig({
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:9003',
@@ -29,11 +25,9 @@ export default buildConfig({
   },
   db: postgresAdapter({
     pool: {
-      host: process.env.PG_HOST,
-      port: process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432,
-      user: process.env.PG_USER,
-      password: process.env.PG_PASSWORD,
-      database: process.env.PG_DATABASE,
+      connectionString: MOCK_DB
+        ? 'postgres://user:pass@localhost:5432/mockdb'
+        : `postgres://${process.env.PG_USER}:${process.env.PG_PASSWORD}@${process.env.PG_HOST}:${process.env.PG_PORT || 5432}/${process.env.PG_DATABASE}`,
     },
   }),
 })

@@ -1,3 +1,4 @@
+
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
@@ -5,8 +6,7 @@
     "jsx": "react-jsx"
   },
   "include": [
-    "src",
-    "src/payload.config.ts"
+    "src"
   ],
   "exclude": [
     "node_modules",
