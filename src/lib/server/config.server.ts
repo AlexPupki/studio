@@ -6,24 +6,28 @@ const optionalString = (schema: z.ZodString) =>
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL.').default('http://localhost:3000'),
+  APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL.').default('http://localhost:3002'),
 
   // --- Database (PostgreSQL) ---
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required.'),
-  DB_SOCKET_PATH: optionalString(z.string()), // For Cloud SQL connections from App Hosting/Run
+  DB_SOCKET_PATH: optionalString(z.string()),
+
+
+  // --- Redis ---
+  REDIS_URL: z.string().min(1, 'REDIS_URL is required.'),
 
   // --- Authentication & Security ---
-  SESSION_SECRET_KEY: optionalString(z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.')),
-  PEPPER: optionalString(z.string().min(16, 'PEPPER must be at least 16 characters.')),
-  JWT_SECRET: optionalString(z.string().min(32, 'JWT_SECRET must be at least 32 characters.')),
-  CRON_SECRET: optionalString(z.string().min(32, 'CRON_SECRET must be at least 32 characters.')),
+  SESSION_SECRET_KEY: z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.'),
+  PEPPER: z.string().min(16, 'PEPPER must be at least 16 characters.'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters.'),
+  CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters.'),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
 
   // --- Google Cloud Storage ---
-  GCS_BUCKET: optionalString(z.string()),
+  GCS_BUCKET: z.string().min(1, 'GCS_BUCKET is required.'),
   // GOOGLE_APPLICATION_CREDENTIALS_JSON is read directly by the SDK, so we check for its presence
-  GOOGLE_APPLICATION_CREDENTIALS: optionalString(z.string()),
+  GOOGLE_APPLICATION_CREDENTIALS_JSON: optionalString(z.string()),
 
   // --- Google AI (Gemini) ---
   GEMINI_API_KEY: optionalString(z.string()),
