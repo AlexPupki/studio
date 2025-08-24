@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npx -y pnpm@9.12.0 -r --parallel dev",
+    "dev": "npx -y pnpm@9.12.0 install && npx -y pnpm@9.12.0 -r --parallel dev",
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
     "lint": "pnpm --filter web lint",
