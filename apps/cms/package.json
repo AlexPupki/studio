@@ -6,7 +6,7 @@
   "description": "Payload CMS",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "payload dev --port 9003",
+    "dev": "payload dev",
     "build": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload build",
     "start": "PAYLOAD_CONFIG_PATH=dist/payload.config.js NODE_ENV=production node dist/server.js",
     "generate:types": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload generate:types",
