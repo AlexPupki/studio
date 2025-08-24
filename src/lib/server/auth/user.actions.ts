@@ -105,8 +105,9 @@ export async function verifyLoginCode(
 }
 
 async function getSession() {
+    const cookieStore = cookies();
     const cookieName = getEnv('COOKIE_NAME');
-    const token = cookies().get(cookieName)?.value;
+    const token = cookieStore.get(cookieName)?.value;
     if (!token) return null;
 
     try {
