@@ -40,6 +40,11 @@ export async function withIdempotency(
     ).toResponse(traceId);
   }
 
+  // If redis is not configured, bypass idempotency check for graceful degradation.
+  if (!redisClient) {
+    return handler();
+  }
+
   // Create a consistent hash of the key
   const keyHash = createHash('sha256').update(idempotencyKey).digest('hex');
   const redisKey = `idem:${keyHash}`;

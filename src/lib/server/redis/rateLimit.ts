@@ -13,6 +13,11 @@ import { ApiError } from '../http/errors';
  * @param key (Optional) A specific key to rate limit on (e.g., userId, phone number). Defaults to the client's IP address.
  */
 export async function rateLimit(identifier: string, limit: number, windowSec: number, key?: string): Promise<void> {
+    // If redis is not configured, bypass rate limiting.
+    if (!redisClient) {
+        return;
+    }
+
     const targetKey = key || getIp();
     if (!targetKey) {
         // Cannot rate limit if no key is available

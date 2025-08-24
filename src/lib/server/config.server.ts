@@ -20,7 +20,7 @@ const EnvSchema = z.object({
 
 
   // --- Redis ---
-  REDIS_URL: optionalString(z.string().min(1, 'REDIS_URL is required.')),
+  REDIS_URL: optionalString(z.string().url()),
 
   // --- Security ---
   SESSION_SECRET_KEY: optionalString(z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.')),

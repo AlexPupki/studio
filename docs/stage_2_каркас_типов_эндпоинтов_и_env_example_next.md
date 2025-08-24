@@ -200,7 +200,7 @@ const EnvSchema = z.object({
   PG_PASSWORD: z.string(),
   PG_DATABASE: z.string(),
   
-  REDIS_URL: z.string().url(), // Обязателен для production
+  REDIS_URL: z.string().url().optional(), // Опционален для разработки
 
   // GCS
   GCS_BUCKET: z.string(),
@@ -434,8 +434,11 @@ FEATURE_PUBLIC_SITE=true
 # Secrets
 COOKIE_SECRET_CURRENT=change_me_to_long_random_32+_chars
 COOKIE_SECRET_PREV=
-JWT_SECRET=
+JWT_SECRET=change_me_to_a_secure_random_string_for_jwt
 CRON_SECRET=change_me_to_a_secure_random_string_for_cron
+PEPPER=change_me_to_long_random_16+_chars_for_hashing
+SESSION_SECRET_KEY=change_me_to_long_random_32+_chars_for_sessions
+
 
 # Data Stores
 PG_HOST=localhost
@@ -444,12 +447,14 @@ PG_USER=user
 PG_PASSWORD=pass
 PG_DATABASE=gts
 
-REDIS_URL=redis://localhost:6379
+# Redis (optional for local dev, required for prod rate limiting/idempotency)
+# REDIS_URL=redis://localhost:6379
 
-# Google Cloud Storage
-GCS_BUCKET=gts-mvp-media-euw4
-GCS_PROJECT_ID=
-GCS_CLIENT_EMAIL=
-GCS_PRIVATE_KEY=
+# Google Cloud Storage (S3-compatible)
+S3_ENDPOINT_URL=https://storage.googleapis.com
+S3_BUCKET_NAME=your-gcs-bucket-name
+S3_REGION=auto
+S3_ACCESS_KEY_ID=your-s3-access-key-id
+S3_SECRET_ACCESS_KEY=your-s3-secret-access-key
 
 ```
