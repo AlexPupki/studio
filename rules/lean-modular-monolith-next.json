@@ -1,3 +1,4 @@
+
 {
     "name": "lean-modular-monolith-next",
     "purpose": "Контрактно-ориентированная, но масштабируемая e-commerce-архитектура на Next.js (App Router) с применением Hexagonal/Clean подхода. Оптимизирована под малую команду и деплой в Google Cloud Run / Firebase Hosting.",

@@ -1,3 +1,4 @@
+
 {
     "name": "HexagonalCleanArchitectureWithBFF",
     "purpose": "Жёстко отделить серверные зависимости (GenKit, OpenTelemetry, БД-SDK и т. д.) от браузерного кода, чтобы избежать ошибок «Module not found» и раздувания client-bundle. Используются суффиксы .server.ts и контрактные интерфейсы.",
