@@ -1,4 +1,3 @@
-'use server';
 
 import { db } from '../db';
 import { users, loginCodes as loginCodesSchema } from '../db/schema';
