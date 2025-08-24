@@ -1,4 +1,3 @@
-'use server';
 
 // This file is being kept for now in case stateful sessions are needed for other purposes,
 // but it is no longer used for the primary authentication flow in middleware.

@@ -1,4 +1,3 @@
-'use server';
 
 export interface IRateLimiter {
   check(key: string): Promise<{ success: boolean; remaining?: number }>;
