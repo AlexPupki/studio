@@ -1,6 +1,3 @@
--- Current sql file was generated after introspecting the database
--- If you want to run this migration please uncomment this code before executing migrations
-/*
 DO $$ BEGIN
  CREATE TYPE "public"."actor_type" AS ENUM('system', 'user', 'ops');
 EXCEPTION
@@ -65,10 +62,10 @@ CREATE TABLE IF NOT EXISTS "audit_events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"ts" timestamp with time zone DEFAULT now() NOT NULL,
 	"trace_id" uuid,
-	"actor_type" "public"."actor_type" NOT NULL,
+	"actor_type" "actor_type" NOT NULL,
 	"actor_id" text,
 	"action" text NOT NULL,
-	"entity_type" "public"."entity_type" NOT NULL,
+	"entity_type" "entity_type" NOT NULL,
 	"entity_id" text,
 	"data" jsonb
 );
@@ -76,8 +73,8 @@ CREATE TABLE IF NOT EXISTS "audit_events" (
 CREATE TABLE IF NOT EXISTS "bookings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"code" text NOT NULL,
-	"state" "public"."booking_state" NOT NULL,
-	"cancel_reason" "public"."booking_cancel_reason",
+	"state" "booking_state" NOT NULL,
+	"cancel_reason" "booking_cancel_reason",
 	"slot_id" uuid NOT NULL,
 	"qty" integer NOT NULL,
 	"customer_name" text NOT NULL,
@@ -109,7 +106,7 @@ CREATE TABLE IF NOT EXISTS "invoices" (
 	"number" text NOT NULL,
 	"amount_minor" bigint NOT NULL,
 	"currency" char(3) DEFAULT 'RUB' NOT NULL,
-	"status" "public"."invoice_status" NOT NULL,
+	"status" "invoice_status" NOT NULL,
 	"pdf_path" text,
 	"issued_at" timestamp with time zone DEFAULT now(),
 	"paid_at" timestamp with time zone,
@@ -137,7 +134,7 @@ CREATE TABLE IF NOT EXISTS "page_versions" (
 CREATE TABLE IF NOT EXISTS "pages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" text NOT NULL,
-	"status" "public"."page_status" DEFAULT 'draft' NOT NULL,
+	"status" "page_status" DEFAULT 'draft' NOT NULL,
 	"title" text NOT NULL,
 	"content_blocks" jsonb,
 	"seo_meta" jsonb,
@@ -155,7 +152,7 @@ CREATE TABLE IF NOT EXISTS "posts" (
 	"content" text,
 	"excerpt" text,
 	"cover_image_url" text,
-	"status" "public"."post_status" DEFAULT 'draft' NOT NULL,
+	"status" "post_status" DEFAULT 'draft' NOT NULL,
 	"author_id" text,
 	"category_id" uuid,
 	"published_at" timestamp with time zone,
@@ -187,7 +184,7 @@ CREATE TABLE IF NOT EXISTS "request_logs" (
 CREATE TABLE IF NOT EXISTS "routes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" text NOT NULL,
-	"status" "public"."route_status" DEFAULT 'draft' NOT NULL,
+	"status" "route_status" DEFAULT 'draft' NOT NULL,
 	"title" jsonb NOT NULL,
 	"description" jsonb,
 	"meeting_point" jsonb,
@@ -206,7 +203,8 @@ CREATE TABLE IF NOT EXISTS "slots" (
 	"end_at" timestamp with time zone NOT NULL,
 	"capacity_total" integer NOT NULL,
 	"capacity_held" integer DEFAULT 0 NOT NULL,
-	"capacity_confirmed" integer DEFAULT 0 NOT NULL
+	"capacity_confirmed" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "capacity_check" CHECK (("capacity_total" >= "capacity_held" + "capacity_confirmed" AND "capacity_total" >= 0 AND "capacity_held" >= 0 AND "capacity_confirmed" >= 0))
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "tags" (
@@ -219,30 +217,29 @@ CREATE TABLE IF NOT EXISTS "tags" (
 CREATE TABLE IF NOT EXISTS "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"phone_e164" text NOT NULL,
-	"status" "public"."user_status" DEFAULT 'active' NOT NULL,
-	"roles" "public"."user_role"[] DEFAULT '{"customer"}'::user_role[] NOT NULL,
+	"status" "user_status" DEFAULT 'active' NOT NULL,
+	"roles" "user_role"[] DEFAULT ARRAY['customer']::user_role[] NOT NULL,
 	"preferred_language" char(2) DEFAULT 'ru' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"last_login_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_phone_e164_unique" UNIQUE("phone_e164")
 );
 --> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "hold_expire_idx" ON "bookings" ("hold_expires_at");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "idemp_unique_idx" ON "idempotency_keys" ("scope","key");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "invoice_number_uk" ON "invoices" ("number");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "route_start_at_idx" ON "slots" ("route_id","start_at");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "bookings" ADD CONSTRAINT "bookings_slot_id_slots_id_fk" FOREIGN KEY ("slot_id") REFERENCES "public"."slots"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "hold_expire_idx" ON "bookings" ("hold_expires_at");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "idemp_unique_idx" ON "idempotency_keys" ("scope","key");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "invoices" ADD CONSTRAINT "invoices_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "invoice_number_uk" ON "invoices" ("number");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "page_versions" ADD CONSTRAINT "page_versions_page_id_pages_id_fk" FOREIGN KEY ("page_id") REFERENCES "public"."pages"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
@@ -273,5 +270,4 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-ALTER TABLE "slots" ADD CONSTRAINT "capacity_check" CHECK ("capacity_total" >= "capacity_held" + "capacity_confirmed" AND "capacity_total" >= 0 AND "capacity_held" >= 0 AND "capacity_confirmed" >= 0);
-*/
+CREATE UNIQUE INDEX IF NOT EXISTS "route_start_at_idx" ON "slots" ("route_id","start_at");
