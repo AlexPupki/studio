@@ -100,7 +100,7 @@ export default function OpsLogsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 flex flex-col h-full">
+    <div className="p-4 md:p-8 flex-1 flex flex-col">
       <Card className="flex flex-col flex-1">
         <CardHeader>
           <div className="flex justify-between items-start">

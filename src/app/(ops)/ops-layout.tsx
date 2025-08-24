@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -13,7 +14,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Mountain, LogOut, LayoutDashboard, Route, FileText, ScrollText, User, Settings } from 'lucide-react';
+import { Mountain, LogOut, LayoutDashboard, Route, FileText, ScrollText, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -96,7 +97,7 @@ export function OpsLayout({ children, user }: { children: React.ReactNode, user:
                 </Button>
             </div>
         </header>
-        <div className="flex-1 overflow-auto bg-muted/40">
+        <div className="flex-1 overflow-auto bg-muted/40 flex flex-col">
             {children}
         </div>
        </main>
