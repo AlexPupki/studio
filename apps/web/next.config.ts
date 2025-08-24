@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
     ]
   },
   async rewrites() {
-    const cmsUrl = `http://${process.env.HOST_CMS || 'localhost'}:${process.env.PORT_CMS || 9003}`;
+    const cmsUrl = `http://${process.env.HOST_CMS || '127.0.0.1'}:${process.env.PORT_CMS || 9003}`;
     return [
       {
         source: '/cms/:path*',
