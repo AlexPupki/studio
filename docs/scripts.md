@@ -8,21 +8,28 @@
 
 ```json
 {
+  "name": "gts-app",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
     "dev": "node scripts/dev-web.mjs",
     "dev:web": "node scripts/dev-web.mjs",
-    "dev:cms": "pnpm run dev --workspace apps/cms",
+    "dev:cms": "npm run -w apps/cms dev",
     "dev:all": "npm-run-all --parallel dev:web dev:cms",
-    "build": "pnpm run build --workspaces",
-    "start": "pnpm run start --workspace apps/web"
-  }
+    "build": "npm run -w apps/web build && npm run -w apps/cms build",
+    "start": "npm run -w apps/web start"
+  },
+  "workspaces": [
+    "apps/*"
+  ]
 }
 ```
 
-- **`dev`**: Основной скрипт для среды предпросмотра Firebase Studio. Он по умолчанию запускает веб-приложение, используя кастомный раннер.
-- **`dev:web`**: Этот скрипт — ключ к нашей стабильной настройке. Он выполняет выделенный Node.js скрипт (`scripts/dev-web.mjs`), который корректно обрабатывает аргументы и запускает сервер Next.js с правильным портом и хостом. Это полностью изолирует его от любых аргументов, передаваемых родительской средой.
+- **`dev` / `dev:web`**: Основной скрипт для среды предпросмотра Firebase Studio. Он выполняет выделенный Node.js скрипт (`scripts/dev-web.mjs`), который корректно обрабатывает переменные окружения и запускает сервер Next.js с правильным портом и хостом. Это полностью изолирует его от любых аргументов, передаваемых родительской средой.
 - **`dev:cms`**: Стандартная команда для запуска воркспейса Payload CMS.
 - **`dev:all`**: Утилитарный скрипт для локальной разработки, который запускает и веб-приложение, и CMS параллельно.
+- **`build` / `start`**: Команды для сборки и запуска production-версии соответствующего приложения.
+
 
 ## 2. `apps/web/package.json`
 
@@ -30,6 +37,9 @@
 
 ```json
 {
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -38,7 +48,7 @@
 }
 ```
 
-- **`dev`**: Просто запускает сервер для разработки Next.js. Он ожидает, что порт и хост будут предоставлены окружением, что и делает наш раннер `dev-web.mjs`.
+- **`dev`**: Просто запускает сервер для разработки Next.js. Он ожидает, что порт и хост будут предоставлены окружением, что и делает наш раннер `scripts/dev-web.mjs`.
 
 ## 3. `apps/cms/package.json`
 
@@ -46,6 +56,9 @@
 
 ```json
 {
+  "name": "cms",
+  "private": true,
+  "version": "1.0.0",
   "scripts": {
     "dev": "payload dev",
     "build": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload build",

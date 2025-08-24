@@ -1,36 +1,24 @@
 
-import { spawn } from 'child_process';
-import { config } from 'dotenv';
-import path from 'path';
+#!/usr/bin/env node
+import 'dotenv/config';
+import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
+import { createRequire } from 'node:module';
 
-// Загружаем переменные окружения из корневого .env файла
-config({ path: path.resolve(process.cwd(), '.env') });
+// Берём порт/хост из .env или используем дефолтные значения
+const port = process.env.PORT_WEB || '9002';
+const host = process.env.HOST_WEB || '0.0.0.0';
 
-const args = process.argv.slice(2);
-const portFlagIndex = args.indexOf('--port');
-const hostFlagIndex = args.indexOf('--hostname');
+// Надёжно резолвим бинарь next из контекста apps/web (работает и при хоистинге)
+const requireFromWeb = createRequire(resolve('apps/web/package.json'));
+const nextBin = requireFromWeb.resolve('next/dist/bin/next');
 
-let port = process.env.PORT || '9002';
-if (portFlagIndex !== -1 && args[portFlagIndex + 1]) {
-  port = args[portFlagIndex + 1];
-}
+console.log(`> Starting Next.js on http://${host}:${port}`);
 
-let hostname = process.env.HOST || '0.0.0.0';
-if (hostFlagIndex !== -1 && args[hostFlagIndex + 1]) {
-  hostname = args[hostFlagIndex + 1];
-}
-
-console.log(`> Starting Next.js on http://${hostname}:${port}`);
-
-const nextProcess = spawn(
-  'pnpm',
-  ['run', 'dev', '--workspace', 'apps/web', '--', '--port', port, '--hostname', hostname],
-  {
-    stdio: 'inherit',
-    shell: true,
-  }
-);
-
-nextProcess.on('close', (code) => {
-  console.log(`Next.js process exited with code ${code}`);
+const child = spawn(process.execPath, [nextBin, 'dev', '-p', String(port), '-H', host], {
+  cwd: resolve('apps/web'),
+  stdio: 'inherit',
+  env: { ...process.env, PORT: String(port), HOST: host },
 });
+
+child.on('exit', code => process.exit(code ?? 0));

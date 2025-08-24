@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "node scripts/dev-web.mjs",
     "dev:web": "node scripts/dev-web.mjs",
-    "dev:cms": "pnpm run dev --workspace apps/cms",
+    "dev:cms": "npm run -w apps/cms dev",
     "dev:all": "npm-run-all --parallel dev:web dev:cms",
-    "build": "pnpm run build --workspaces",
-    "start": "pnpm run start --workspace apps/web",
+    "build": "npm run -w apps/web build && npm run -w apps/cms build",
+    "start": "npm run -w apps/web start",
     "lint": "pnpm run lint --workspace apps/web",
     "typecheck": "pnpm run typecheck --workspaces --if-present",
     "db:generate": "pnpm run db:generate --workspace apps/web",
