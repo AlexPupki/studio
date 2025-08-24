@@ -4,83 +4,52 @@ This document provides a clear overview of the `scripts` sections from all `pack
 
 ## 1. Root `package.json`
 
-This file acts as the main conductor for the entire project. Its scripts are designed to manage the workspaces (`apps/web` and `apps/cms`) without passing down any complex or fragile arguments.
+This file acts as the main conductor for the entire project. Its scripts are designed to manage the workspaces (`apps/web` and `cms`) in a robust way, using a Node.js runner to prevent command-line argument issues.
 
 ```json
 {
   "scripts": {
-    "//": "The main 'dev' script simply runs the web app, which is the primary use case for the preview environment.",
     "dev": "npm run dev:web",
-
-    "//": "Runs the web application workspace. It relies on the .env file for PORT/HOST configuration.",
-    "dev:web": "npm run dev --workspace apps/web",
-
-    "//": "Runs the CMS workspace. It also relies on the .env file for its PORT/HOST.",
+    "dev:web": "node scripts/dev-web.mjs",
     "dev:cms": "npm run dev --workspace apps/cms",
-
-    "//": "Runs both the web app and the CMS in parallel for full local development. Essential for testing the integration.",
-    "dev:all": "npm-run-all --parallel dev:web dev:cms",
-
-    "//": "Workspace-aware build command.",
-    "build": "npm run build --workspaces",
-
-    "//": "Starts the production build of the web app.",
-    "start": "npm run start --workspace apps/web",
-
-    "//": "Generic commands that delegate to the web app's specific scripts.",
-    "lint": "npm run lint --workspace apps/web",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "db:generate": "npm run db:generate --workspace apps/web",
-    "db:migrate": "npm run db:migrate --workspace apps/web",
-    "db:seed": "npm run db:seed --workspace apps/web",
-    "test": "npm run test --workspace apps/web",
-    "test:watch": "npm run test:watch --workspace apps/web",
-    "test:e2e": "npm run test:e2e --workspace apps/web",
-
-    "//": "A specific command to generate types for the CMS.",
-    "cms:generate:types": "npm run generate:types --workspace apps/cms"
+    "dev:all": "npm-run-all --parallel dev:web dev:cms"
   }
 }
 ```
+
+- **`dev`**: The primary script for the Firebase Studio preview environment. It defaults to running the web application.
+- **`dev:web`**: This is the key to our stable setup. It executes a dedicated Node.js script (`scripts/dev-web.mjs`) that reads the `.env` file and starts the Next.js server with the correct port and host. This completely isolates it from any arguments passed by the parent environment, solving the "invalid directory" error.
+- **`dev:cms`**: A standard command to run the Payload CMS workspace.
+- **`dev:all`**: A utility script for local development that runs both the web application and the CMS in parallel.
 
 ## 2. `apps/web/package.json`
 
-This is the Next.js application. Its `dev` script is now self-contained and relies on environment variables for configuration, which is the standard and most reliable practice for Next.js.
+The Next.js application's scripts are now extremely simple, as the complexity is handled by the runner script in the root.
 
 ```json
 {
   "scripts": {
-    "//": "The dev script is now simple and robust. It uses environment variables PORT_WEB and HOST_WEB from the .env file. This prevents the 'Invalid project directory' error.",
-    "dev": "next dev -p ${PORT_WEB:-9002} -H ${HOST_WEB:-0.0.0.0}",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "//": "Database-related scripts that use drizzle-kit.",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx -r dotenv/config src/lib/server/db/seed.ts",
-    "//": "Testing scripts using Vitest and Playwright.",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "start": "next start"
   }
 }
 ```
+
+- **`dev`**: Simply starts the Next.js development server. It expects the port and host to be provided by the environment, which our `dev-web.mjs` runner does.
 
 ## 3. `apps/cms/package.json`
 
-This is the Payload CMS application. Its `dev` script is also self-contained and configured via environment variables.
+The Payload CMS application's scripts are also straightforward.
 
 ```json
 {
   "scripts": {
-    "//": "The dev script for the CMS is now simple and uses environment variables PORT_CMS and HOST_CMS from the .env file.",
     "dev": "payload dev",
     "build": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload build",
-    "start": "PAYLOAD_CONFIG_PATH=dist/payload.config.js NODE_ENV=production node dist/server.js",
-    "generate:types": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload generate:types",
-    "typecheck": "tsc --noEmit"
+    "start": "PAYLOAD_CONFIG_PATH=dist/payload.config.js NODE_ENV=production node dist/server.js"
   }
 }
 ```
+
+- **`dev`**: Starts the Payload CMS development server. It's configured to run on a separate port defined in the `.env` file (`PORT_CMS`).
