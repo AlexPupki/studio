@@ -1,6 +1,5 @@
 
 import { z } from 'zod';
-import 'dotenv/config';
 
 const optionalString = (schema: z.ZodString) =>
   z.preprocess((val) => (val === '' ? undefined : val), schema.optional());
@@ -86,20 +85,13 @@ let envConfig: z.infer<typeof EnvSchema>;
 try {
     const parsed = EnvSchema.safeParse(process.env);
     if (!parsed.success) {
-      const path = require('path');
-      require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
-      const parsedFromDotenv = EnvSchema.safeParse(process.env);
-      if(!parsedFromDotenv.success) {
         console.error(
             '❌ Invalid environment variables:',
-            parsedFromDotenv.error.flatten().fieldErrors
+            parsed.error.flatten().fieldErrors
         );
         throw new Error('Invalid environment variables.');
-      }
-      envConfig = parsedFromDotenv.data;
-    } else {
-      envConfig = parsed.data;
     }
+    envConfig = parsed.data;
 } catch (error) {
     // Gracefully handle case where env is not set on build servers
     console.warn("Could not parse environment variables. Using empty object as fallback.", error)
