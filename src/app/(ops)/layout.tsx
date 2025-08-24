@@ -1,5 +1,5 @@
 
-import { getCurrentUser } from '@/lib/server/auth/auth.actions';
+import { getCurrentUser } from '@/lib/server/auth/user.actions';
 import { OpsLayout } from './ops-layout';
 import { redirect } from 'next/navigation';
 

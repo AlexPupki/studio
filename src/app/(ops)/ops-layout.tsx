@@ -20,7 +20,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { User as UserType } from '@/lib/shared/iam.contracts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { logout } from '@/lib/server/auth/auth.actions';
+import { logout } from '@/lib/server/auth/user.actions';
 
 export function OpsLayout({ children, user }: { children: React.ReactNode, user: UserType }) {
   const pathname = usePathname();

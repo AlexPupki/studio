@@ -15,7 +15,7 @@ import {
 import {
   getCurrentUser,
   logout,
-} from '@/lib/server/auth/auth.actions';
+} from '@/lib/server/auth/user.actions';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/server/db';
 import { bookings } from '@/lib/server/db/schema';

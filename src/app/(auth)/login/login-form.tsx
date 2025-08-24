@@ -27,7 +27,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { requestLoginCode } from '@/lib/server/auth/auth.actions';
+import { requestLoginCode } from '@/lib/server/auth/user.actions';
 
 const PhoneSchema = z
   .string()

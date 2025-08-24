@@ -29,7 +29,7 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp';
 import React from 'react';
-import { requestLoginCode, verifyLoginCode } from '@/lib/server/auth/auth.actions';
+import { requestLoginCode, verifyLoginCode } from '@/lib/server/auth/user.actions';
 import { maskPhone } from '@/lib/shared/phone.utils';
 import Link from 'next/link';
 
