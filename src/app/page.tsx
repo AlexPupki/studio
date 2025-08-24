@@ -13,14 +13,16 @@ export default async function Home() {
 
   let featuredRoutes: (typeof RoutesTable.$inferSelect)[] = [];
   try {
+    // This query will fail if migrations have not been run.
+    // The catch block prevents the page from crashing.
     featuredRoutes = await db.query.routes.findMany({
       where: eq(routes.status, 'active'),
       limit: 3,
     });
   } catch (error) {
-    console.error("Failed to fetch featured routes:", error);
-    // The table might not exist yet, so we'll just show an empty list.
-    // The underlying issue needs to be fixed by running migrations.
+    console.error("Database query failed. This may be because migrations have not been run. Error:", error);
+    // Gracefully handle the case where the table doesn't exist.
+    // The page will render with an empty list of routes.
   }
 
 
