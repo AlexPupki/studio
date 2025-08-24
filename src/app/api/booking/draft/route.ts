@@ -1,3 +1,4 @@
+
 import { db } from "@/lib/server/db";
 import { bookings } from "@/lib/server/db/schema";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -9,6 +10,7 @@ import { rateLimit } from "@/lib/server/redis/rateLimit";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { audit } from "@/lib/server/audit";
 import { getIp } from "@/lib/server/http/ip";
+import { getEnv } from "@/lib/server/config.server";
 
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
 
@@ -22,54 +24,64 @@ const DraftRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest, traceId: string) {
-  await rateLimit('booking_draft', 5, '60s', getIp(req));
-  assertTrustedOrigin(req);
+    await rateLimit(
+        'booking_draft', 
+        getEnv('RL_BOOKING_DRAFT_LIMIT'), 
+        getEnv('RL_BOOKING_DRAFT_WINDOW'),
+        getIp(req)
+    );
+    assertTrustedOrigin(req);
 
-  const body = await req.json();
-  const parsed = DraftRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    throw new ApiError("validation_error", "Invalid body", 400, parsed.error.format());
-  }
+    const body = await req.json();
+    const parsed = DraftRequestSchema.safeParse(body);
+    if (!parsed.success) {
+        throw new ApiError("validation_error", "Invalid body", 400, parsed.error.format());
+    }
 
-  const { slotId, qty, customer } = parsed.data;
+    const { slotId, qty, customer } = parsed.data;
 
-  const phoneE164 = normalizePhone(customer.phone);
-  if (!phoneE164) {
-    throw new ApiError("validation_error", "Invalid phone number format", 400);
-  }
+    const phoneE164 = normalizePhone(customer.phone);
+    if (!phoneE164) {
+        throw new ApiError("validation_error", "Invalid phone number format", 400);
+    }
   
-  // Additional rate limit by phone number
-  await rateLimit('booking_draft_phone', 5, '60s', phoneE164);
+    // Additional rate limit by phone number
+    await rateLimit(
+        'booking_draft_phone', 
+        getEnv('RL_BOOKING_DRAFT_PHONE_LIMIT'), 
+        getEnv('RL_BOOKING_DRAFT_PHONE_WINDOW'), 
+        phoneE164
+    );
 
-  const [newBooking] = await db
-    .insert(bookings)
-    .values({
-      slotId,
-      qty,
-      customerName: customer.name,
-      customerPhoneE164: phoneE164,
-      state: "draft",
-      code: nanoid(),
-    })
-    .returning({
-      id: bookings.id,
-      code: bookings.code,
-      state: bookings.state,
+    const [newBooking] = await db
+        .insert(bookings)
+        .values({
+        slotId,
+        qty,
+        customerName: customer.name,
+        customerPhoneE164: phoneE164,
+        state: "draft",
+        code: nanoid(),
+        })
+        .returning({
+        id: bookings.id,
+        code: bookings.code,
+        state: bookings.state,
+        });
+  
+    await audit({
+        traceId,
+        actor: { type: 'user', id: 'TODO' }, // TODO: get from session
+        action: 'booking.drafted',
+        entity: { type: 'booking', id: newBooking.id },
+        data: { slotId, qty, customerName: customer.name }
     });
-  
-  await audit({
-      traceId,
-      actor: { type: 'user', id: 'TODO' }, // TODO: get from session
-      action: 'booking.drafted',
-      entity: { type: 'booking', id: newBooking.id },
-      data: { slotId, qty, customerName: customer.name }
-  });
 
-  return NextResponse.json({
-      bookingId: newBooking.id,
-      code: newBooking.code,
-      state: newBooking.state,
-  }, { status: 201 });
+    return NextResponse.json({
+        bookingId: newBooking.id,
+        code: newBooking.code,
+        state: newBooking.state,
+    }, { status: 201 });
 }
 
 export const POST = withApiError(handler);

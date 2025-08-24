@@ -21,7 +21,12 @@ const HoldRequestSchema = z.object({
 
 async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, traceId, async () => {
-    await rateLimit('booking_hold', 5, '60s', getIp(req));
+    await rateLimit(
+        'booking_hold', 
+        getEnv('RL_BOOKING_HOLD_LIMIT'), 
+        getEnv('RL_BOOKING_HOLD_WINDOW'), 
+        getIp(req)
+    );
     assertTrustedOrigin(req);
 
     const body = await req.json();

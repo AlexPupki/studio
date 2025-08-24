@@ -1,3 +1,4 @@
+
 import { withIdempotency } from "@/lib/server/redis/idempotency";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -11,6 +12,7 @@ import { z } from "zod";
 import { audit } from "@/lib/server/audit";
 import { rateLimit } from "@/lib/server/redis/rateLimit";
 import { getIp } from "@/lib/server/http/ip";
+import { getEnv } from "@/lib/server/config.server";
 
 const ConfirmRequestSchema = z.object({
   bookingId: z.string().uuid(),
@@ -19,7 +21,12 @@ const ConfirmRequestSchema = z.object({
 
 async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, traceId, async () => {
-    await rateLimit('booking_confirm', 5, '60s', getIp(req));
+    await rateLimit(
+        'booking_confirm', 
+        getEnv('RL_BOOKING_CONFIRM_LIMIT'), 
+        getEnv('RL_BOOKING_CONFIRM_WINDOW'), 
+        getIp(req)
+    );
     assertTrustedOrigin(req);
     const body = await req.json();
     const parsed = ConfirmRequestSchema.safeParse(body);

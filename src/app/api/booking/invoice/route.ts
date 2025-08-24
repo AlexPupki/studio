@@ -1,3 +1,4 @@
+
 import { withIdempotency } from "@/lib/server/redis/idempotency";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -41,7 +42,7 @@ async function handler(req: NextRequest, traceId: string) {
       // Check if invoice already exists
       const [existingInvoice] = await tx.select().from(invoices).where(eq(invoices.bookingId, bookingId));
       if (existingInvoice) {
-         const pdfUrl = existingInvoice.pdfPath ? await generateDownloadUrl(existingInvoice.pdfPath, 3600 * 24) : null;
+         const pdfUrl = existingInvoice.pdfPath ? await generateDownloadUrl(existingInvoice.pdfPath) : null;
          return { 
             invoiceId: existingInvoice.id,
             number: existingInvoice.number, 
@@ -81,7 +82,7 @@ async function handler(req: NextRequest, traceId: string) {
           data: { bookingId, number: newInvoice.number, amount: newInvoice.amountMinor }
       });
 
-      const pdfUrl = await generateDownloadUrl(pdfPath, 3600 * 24); // 24 hours validity
+      const pdfUrl = await generateDownloadUrl(pdfPath);
       return { 
         invoiceId: newInvoice.id,
         number: newInvoice.number, 
