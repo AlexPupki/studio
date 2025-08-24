@@ -27,6 +27,9 @@ async function verifySignature(req: NextRequest): Promise<void> {
     
     // For cron jobs, the signature is often just based on the secret, as the body is empty.
     const secret = getEnv('CRON_SECRET');
+    if (!secret) {
+        throw new ApiError('configuration_error', 'CRON_SECRET is not configured', 500);
+    }
 
     const hmac = createHmac('sha256', secret);
     hmac.update(''); // Empty body for this specific cron job
