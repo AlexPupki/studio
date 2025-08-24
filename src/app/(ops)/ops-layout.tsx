@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -16,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Mountain, LogOut, LayoutDashboard, Route, FileText, ScrollText, User, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { User as UserType } from '@/lib/shared/iam.contracts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,6 +23,12 @@ import { logout } from '@/lib/server/auth/user.actions';
 
 export function OpsLayout({ children, user }: { children: React.ReactNode, user: UserType }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/ops/login');
+  }
 
   const navItems = [
     { href: '/ops/dashboard', label: 'Обзор', icon: LayoutDashboard, exact: true },
@@ -67,7 +72,7 @@ export function OpsLayout({ children, user }: { children: React.ReactNode, user:
                     <span className="text-xs text-muted-foreground">{user.phoneE164}</span>
                 </div>
             </div>
-             <form action={logout}>
+             <form action={handleLogout}>
                 <Button variant="ghost" size="icon" type="submit">
                     <LogOut className="h-4 w-4"/>
                 </Button>

@@ -1,9 +1,8 @@
-
 'use server';
 
 export const runtime = 'nodejs';
 
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -31,6 +30,24 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { MainLayout } from '@/components/main-layout';
+
+function LogoutButton() {
+    const handleLogout = async () => {
+        await logout();
+        // This is a client component, so we can use useRouter
+        // but since logout now redirects, this is not strictly necessary
+        // but good for UX.
+        window.location.href = '/login';
+    }
+    return (
+        <form action={logout}>
+            <Button variant="outline" type="submit">
+                Выйти
+            </Button>
+        </form>
+    )
+}
+
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -85,10 +102,10 @@ export default async function AccountPage() {
             </div>
             </CardContent>
             <CardFooter>
-                <form action={logout}>
-                <Button variant="outline" type="submit">
-                    Выйти
-                </Button>
+                 <form action={logout}>
+                    <Button variant="outline" type="submit">
+                        Выйти
+                    </Button>
                 </form>
             </CardFooter>
         </Card>

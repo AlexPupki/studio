@@ -110,19 +110,21 @@ export function VerifyForm() {
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     if (!phone) return;
     try {
-      const result = await verifyLoginCode({ phoneE164: phone, code: data.code, redirectTo: nextUrl });
-      if (result.success) {
+      const result = await verifyLoginCode({ phoneE164: phone, code: data.code });
+      
+      if (result.success && result.redirectTo) {
         toast({
           title: 'Успешно',
           description: 'Вы успешно вошли в систему.',
         });
-        router.push(result.redirectTo || '/account');
-        router.refresh(); // To update server-side rendered components with new session
+        // Client-side redirect
+        router.push(result.redirectTo);
+        router.refresh(); 
       } else {
         toast({
           variant: 'destructive',
           title: 'Ошибка',
-          description: result.error,
+          description: result.error || 'Произошла ошибка при проверке кода.',
         });
          if (result.error === 'Неверный код или срок действия кода истек.') {
           form.setError('code', { message: ' ' });
@@ -198,7 +200,7 @@ export function VerifyForm() {
               <Button
                 variant="link"
                 className="p-0 h-auto font-normal text-muted-foreground"
-                onClick={() => router.push('/login')}
+                onClick={() => router.push(`/login?${searchParams.toString()}`)}
               >
                Изменить номер телефона
               </Button>

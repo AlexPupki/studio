@@ -8,7 +8,6 @@ import {
 } from './auth.service.server';
 import { normalizePhone } from '@/lib/shared/phone.utils';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { getFeature, getEnv } from '../config.server';
 import { SignJWT, jwtVerify } from 'jose';
 import type { User } from '@/lib/shared/iam.contracts';
@@ -59,7 +58,6 @@ export async function requestLoginCode(phone: string) {
 const VerifyCodeInputSchema = z.object({
   phoneE164: z.string(),
   code: z.string(),
-  redirectTo: z.string().nullable().optional(),
 });
 
 export async function verifyLoginCode(
@@ -84,7 +82,6 @@ export async function verifyLoginCode(
     };
   }
 
-  // Create JWT
   const secretKey = await getJwtSecretKey();
   const token = await new SignJWT({ sub: result.user.id, roles: result.user.roles })
     .setProtectedHeader({ alg: 'HS256' })
@@ -100,7 +97,10 @@ export async function verifyLoginCode(
     sameSite: 'lax',
   });
 
-  return { success: true, redirectTo: input.redirectTo || '/account' };
+  const isOps = result.user.roles.some(role => role.startsWith('ops.') || role === 'admin');
+  const redirectTo = isOps ? '/ops' : '/account';
+
+  return { success: true, redirectTo };
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -126,5 +126,4 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function logout() {
   const cookieName = getEnv('COOKIE_NAME');
   cookies().set(cookieName, '', { expires: new Date(0), path: '/' });
-  redirect('/login');
 }
