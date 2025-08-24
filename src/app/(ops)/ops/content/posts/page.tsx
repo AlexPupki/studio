@@ -73,7 +73,7 @@ export default async function OpsPostsPage() {
                       {post.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{post.category?.name || 'N/A'}</TableCell>
+                  <TableCell>{post.category?.name || 'Без категории'}</TableCell>
                   <TableCell>
                     {post.publishedAt?.toLocaleDateString('ru-RU')}
                   </TableCell>

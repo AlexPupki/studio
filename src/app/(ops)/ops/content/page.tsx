@@ -24,8 +24,8 @@ export default function OpsContentPage() {
             <Button asChild>
               <Link href="/ops/content/posts">Посты</Link>
             </Button>
-             <Button asChild>
-              <Link href="/ops/content/pages">Страницы</Link>
+             <Button variant="outline" asChild>
+              <Link href="/ops/content/pages">Страницы (в разработке)</Link>
             </Button>
              <Button asChild>
               <Link href="/ops/content/categories">Категории</Link>
