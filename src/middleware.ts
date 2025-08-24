@@ -25,6 +25,7 @@ export async function middleware(request: NextRequest) {
   
   // --- Session validation ---
   const cookieName = getEnv('COOKIE_NAME');
+  // The `get` method on `request.cookies` returns a cookie object or undefined, not the value directly.
   const token = request.cookies.get(cookieName)?.value;
   const { payload, error } = await verifyAuth(token);
   const isAuthenticated = !error;
