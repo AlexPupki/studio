@@ -1,8 +1,9 @@
--- PostgreSQL 17 — GTS core schema
+-- PostgreSQL 17 — GTS core schema v1.1 (Audited)
 -- idempotency для dev миграций: создаём расширения и домены, если их нет
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS btree_gist; -- [IMPROVEMENT] Needed for EXCLUDE constraint
 
 -- Домены/типы
 DO $$
@@ -39,7 +40,9 @@ CREATE TABLE party (
   is_active         boolean NOT NULL DEFAULT true,
   created_at        timestamptz NOT NULL DEFAULT now(),
   updated_at        timestamptz NOT NULL DEFAULT now(),
-  deleted_at        timestamptz
+  deleted_at        timestamptz,
+  -- [IMPROVEMENT] Ensure at least one contact method is present
+  CONSTRAINT check_contact_info CHECK (phone IS NOT NULL OR email IS NOT NULL)
 );
 CREATE INDEX party_kind_idx ON party(kind);
 CREATE UNIQUE INDEX party_email_uniq ON party(lower(email)) WHERE email IS NOT NULL;
@@ -81,7 +84,7 @@ CREATE TABLE equipment_category (
 CREATE TABLE equipment (
   id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   category_id     uuid NOT NULL REFERENCES equipment_category(id) ON DELETE RESTRICT,
-  code            text UNIQUE NOT NULL,  -- инвентарный код/бортовой
+  code            text NOT NULL,  -- инвентарный код/бортовой
   title           text NOT NULL,         -- Yamaha 252S "Redline", Polaris Slingshot R и т.д.
   brand           text,
   model           text,
@@ -97,6 +100,8 @@ CREATE TABLE equipment (
   updated_at      timestamptz NOT NULL DEFAULT now(),
   deleted_at      timestamptz
 );
+-- [IMPROVEMENT] Case-insensitive unique index for equipment code
+CREATE UNIQUE INDEX equipment_code_uniq_idx ON equipment (UPPER(code));
 CREATE INDEX equipment_category_idx ON equipment(category_id);
 CREATE INDEX equipment_active_idx ON equipment(is_active);
 
@@ -188,7 +193,12 @@ CREATE TABLE availability (
   stock           int NOT NULL DEFAULT 1,              -- места для sharing
   lock_reason     text,
   meta            jsonb NOT NULL DEFAULT '{}'::jsonb,
-  CHECK (ends_at > starts_at)
+  CHECK (ends_at > starts_at),
+  -- [CRITICAL IMPROVEMENT] Prevents creating overlapping slots for the same piece of equipment.
+  CONSTRAINT no_overlapping_slots EXCLUDE USING gist (
+      equipment_id WITH =,
+      tstzrange(starts_at, ends_at) WITH &&
+  ) WHERE (equipment_id IS NOT NULL)
 );
 CREATE INDEX availability_time_idx ON availability(starts_at, ends_at);
 CREATE INDEX availability_eq_idx ON availability(equipment_id);
@@ -273,8 +283,9 @@ CREATE TABLE payment (
 CREATE TABLE payment_2025_08 PARTITION OF payment
 FOR VALUES FROM ('2025-08-01') TO ('2025-09-01');
 
-CREATE INDEX payment_status_idx ON ONLY payment(status);
-CREATE INDEX payment_created_idx ON ONLY payment(created_at);
+-- [IMPROVEMENT] Removed "ON ONLY" to allow indexes to be inherited by partitions.
+CREATE INDEX payment_status_idx ON payment(status);
+CREATE INDEX payment_created_idx ON payment(created_at);
 
 -- Возвраты
 CREATE TABLE refund (
@@ -371,7 +382,7 @@ CREATE TABLE audit_log (
 CREATE INDEX audit_entity_idx ON audit_log(entity, created_at DESC);
 
 -- Умные представления (для отчётов и API)
-CREATE VIEW v_booking_totals AS
+CREATE OR REPLACE VIEW v_booking_totals AS
 SELECT
   b.id,
   b.code,
@@ -421,4 +432,3 @@ ON CONFLICT (slug) DO NOTHING;
 -- ALTER TABLE booking ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY booking_by_agent ON booking
 --   FOR SELECT USING (agent_id = current_setting('app.current_party_id', true)::uuid);
-
