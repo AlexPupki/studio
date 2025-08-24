@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm install --workspaces --if-present && npm run dev --workspace apps/web",
+    "dev": "npm install --workspaces --if-present && npm run dev --workspace apps/web --",
     "build": "npm run build --workspaces",
     "start": "npm run start --workspace apps/web",
     "lint": "npm run lint --workspace apps/web",
