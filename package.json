@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev:web",
-    "dev:web": "npm run dev --workspace apps/web",
+    "dev:web": "node scripts/dev-web.mjs",
     "dev:cms": "npm run dev --workspace apps/cms",
     "dev:all": "npm-run-all --parallel dev:web dev:cms",
     "build": "npm run build --workspaces",
@@ -21,6 +21,7 @@
     "cms:generate:types": "npm run generate:types --workspace apps/cms"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "npm-run-all": "^4.1.5",
     "typescript": "^5"
   },
