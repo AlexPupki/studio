@@ -204,9 +204,10 @@ const EnvSchema = z.object({
 
   // GCS
   GCS_BUCKET: z.string(),
+  GCS_PROJECT_ID: z.string().optional(),
+  GCS_CLIENT_EMAIL: z.string().email().optional(),
+  GCS_PRIVATE_KEY: z.string().optional(),
   GCS_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
-  GOOGLE_CLOUD_PROJECT: z.string(),
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: z.string().min(10).refine(s => s.startsWith('{'), 'Must be a valid JSON string'),
 
   // Notifications (stub/real)
   SMTP_URL: z.string().optional(),
@@ -410,8 +411,10 @@ export async function GET(req: NextRequest) {
       PG_DATABASE: test
       REDIS_URL: redis://localhost:6379
       GCS_BUCKET: gts-mvp-media-euw4
-      # Валидный, но фейковый JSON для прохождения Zod-валидации в CI
-      GOOGLE_APPLICATION_CREDENTIALS_JSON: '{"type":"service_account","project_id":"dummy-project","private_key_id":"dummy","private_key":"dummy","client_email":"dummy@example.com","client_id":"dummy","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/dummy%40example.com"}'
+      GCS_PROJECT_ID: "dummy-project"
+      GCS_CLIENT_EMAIL: "dummy@example.com"
+      GCS_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\\nFAKE_KEY\\n-----END PRIVATE KEY-----\\n"
+
 # ...
 ```
 
@@ -445,6 +448,8 @@ REDIS_URL=redis://localhost:6379
 
 # Google Cloud Storage
 GCS_BUCKET=gts-mvp-media-euw4
-# ...
-GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account",...}
+GCS_PROJECT_ID=
+GCS_CLIENT_EMAIL=
+GCS_PRIVATE_KEY=
+
 ```

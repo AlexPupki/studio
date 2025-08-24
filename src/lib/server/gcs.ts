@@ -1,18 +1,38 @@
 
+
 'use server';
 
-import { Storage } from '@google-cloud/storage';
+import { Storage, StorageOptions } from '@google-cloud/storage';
 import { getEnv } from './config.server';
 
 let storage: Storage | undefined;
 
 function getStorageClient(): Storage {
-    if (!storage) {
-        // The Storage client automatically uses Application Default Credentials.
-        // It will use GOOGLE_APPLICATION_CREDENTIALS environment variable if it's set,
-        // or the attached service account in a Google Cloud environment.
-        storage = new Storage();
+    if (storage) {
+        return storage;
     }
+    
+    const projectId = getEnv('GCS_PROJECT_ID');
+    const clientEmail = getEnv('GCS_CLIENT_EMAIL');
+    const privateKey = getEnv('GCS_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+
+    const options: StorageOptions = {};
+
+    if (projectId && clientEmail && privateKey) {
+        // If individual credential components are provided, use them.
+        options.projectId = projectId;
+        options.credentials = {
+            client_email: clientEmail,
+            private_key: privateKey,
+        };
+        console.log("Initializing GCS client with credentials from environment variables.");
+    } else {
+        // Otherwise, fall back to Application Default Credentials (ADC).
+        // This will work automatically in Google Cloud environments.
+        console.log("Initializing GCS client with Application Default Credentials.");
+    }
+
+    storage = new Storage(options);
     return storage;
 }
 

@@ -1,4 +1,5 @@
 
+
 import { z } from 'zod';
 
 const optionalString = (schema: z.ZodString) =>
@@ -33,8 +34,10 @@ const EnvSchema = z.object({
   
   // --- Google Cloud ---
   GCS_BUCKET: optionalString(z.string().min(1, 'GCS_BUCKET is required.')),
+  GCS_PROJECT_ID: optionalString(z.string()),
+  GCS_CLIENT_EMAIL: optionalString(z.string().email()),
+  GCS_PRIVATE_KEY: optionalString(z.string()),
   GCS_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(1800),
-  GOOGLE_APPLICATION_CREDENTIALS_JSON: optionalString(z.string()),
   GEMINI_API_KEY: optionalString(z.string()),
   
   // --- YCLIENTS Integration ---
