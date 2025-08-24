@@ -6,13 +6,13 @@ import { resolve } from 'node:path';
 const port = process.env.PORT_WEB || '9002';
 const host = process.env.HOST_WEB || '0.0.0.0';
 
-// Запускаем next прямо из воркспейса apps/web, без "npm run внутри npm run"
-const nextBin = resolve('apps/web/node_modules/next/dist/bin/next');
+const env = { ...process.env, PORT: String(port), HOST: host };
 
-const child = spawn(process.execPath, [nextBin, 'dev', '-p', port, '-H', host], {
-  cwd: resolve('apps/web'),
+// Запускаем скрипт воркспейса без прокидывания позиционных аргументов.
+const child = spawn('npm', ['run', '-w', 'apps/web', 'dev'], {
+  cwd: resolve('.'),
   stdio: 'inherit',
-  env: { ...process.env, PORT: port, HOST: host },
+  env,
 });
 
-child.on('exit', code => process.exit(code ?? 0));
+child.on('exit', (code) => process.exit(code ?? 0));
