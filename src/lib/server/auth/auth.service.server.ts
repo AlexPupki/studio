@@ -50,7 +50,7 @@ class IamServiceImpl implements IamService {
      const [newUser] = await db.insert(users).values({
         phoneE164,
         status: 'active',
-        preferredLanguage: 'ru',
+        preferredLanguage: getEnv('DEFAULT_LOCALE'),
         roles: ['customer']
      }).returning();
      return newUser;
@@ -69,7 +69,7 @@ class IamServiceImpl implements IamService {
     await db.insert(loginCodesSchema).values({
         phoneE164,
         codeHash: hash(code),
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        expiresAt: new Date(Date.now() + getEnv('LOGIN_CODE_TTL_MINUTES') * 60 * 1000), 
     });
 
     return { user, code };
@@ -136,7 +136,7 @@ class SessionServiceImpl implements SessionService {
       userId,
       issuedAt: new Date().toISOString(),
       expiresAt: new Date(
-        Date.now() + parseInt(getEnv('SESSION_TTL_DAYS')) * 24 * 60 * 60 * 1000
+        Date.now() + getEnv('SESSION_TTL_DAYS') * 24 * 60 * 60 * 1000
       ).toISOString(),
     };
     await this.store.set(session.id, session);

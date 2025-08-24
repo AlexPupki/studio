@@ -19,6 +19,7 @@ const EnvSchema = z.object({
   CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters.'),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  LOGIN_CODE_TTL_MINUTES: z.coerce.number().int().positive().default(5),
   
   // --- Google Cloud ---
   GCS_BUCKET: z.string().min(1, 'GCS_BUCKET is required.'),
@@ -33,9 +34,12 @@ const EnvSchema = z.object({
   UCLIENTS_WEBHOOK_SECRET: optionalString(z.string()),
   UCLIENTS_TZ: z.string().default('Europe/Moscow'),
 
-  // --- Other ---
+  // --- Business Logic ---
+  BOOKING_HOLD_TTL_MINUTES: z.coerce.number().int().positive().default(30),
   BASE_CURRENCY: z.enum(['RUB', 'USD', 'EUR']).default('RUB'),
   DEFAULT_LOCALE: z.enum(['ru', 'en']).default('ru'),
+
+  // --- Analytics ---
   NEXT_PUBLIC_GA_MEASUREMENT_ID: optionalString(z.string()),
 });
 
@@ -86,6 +90,10 @@ const featureFlags = {
   // Integrations
   FEATURE_UCLIENTS_ENABLED:
     process.env.FEATURE_UCLIENTS_ENABLED === 'true', // default: false
+
+  // Console
+  FEATURE_OPS_CONSOLE:
+    process.env.FEATURE_OPS_CONSOLE !== 'false', // default: true
 } as const;
 
 export type FeatureFlag = keyof typeof featureFlags;

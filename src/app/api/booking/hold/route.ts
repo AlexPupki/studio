@@ -1,3 +1,4 @@
+
 import { withIdempotency } from "@/lib/server/redis/idempotency";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -12,6 +13,7 @@ import { z } from "zod";
 import { rateLimit } from "@/lib/server/redis/rateLimit";
 import { audit } from "@/lib/server/audit";
 import { getIp } from "@/lib/server/http/ip";
+import { getEnv } from "@/lib/server/config.server";
 
 const HoldRequestSchema = z.object({
   bookingId: z.string().uuid(),
@@ -48,7 +50,7 @@ async function handler(req: NextRequest, traceId: string) {
 
       await holdCapacity(tx, booking.slotId, booking.qty);
 
-      const holdExpiresAt = addMinutes(new Date(), 30);
+      const holdExpiresAt = addMinutes(new Date(), getEnv('BOOKING_HOLD_TTL_MINUTES'));
       const [updatedBooking] = await tx
         .update(bookings)
         .set({ state: "hold", holdExpiresAt })
