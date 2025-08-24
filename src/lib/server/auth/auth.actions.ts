@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -85,20 +86,34 @@ export async function verifyLoginCode(input: z.infer<typeof VerifyCodeInputSchem
   return { success: true, redirectTo: input.redirectTo || '/account' };
 }
 
-
-export async function getCurrentUser() {
-    if (!getFeature('FEATURE_ACCOUNT')) {
-        return null;
-    }
+/**
+ * Lightweight session validation for middleware.
+ * Reads the session cookie and verifies it with the session store (e.g., Redis).
+ * Does NOT query the main database.
+ */
+export async function validateSession() {
     const cookieName = getEnv('COOKIE_NAME');
     const cookieValue = cookies().get(cookieName)?.value;
     if (!cookieValue) return null;
 
     const session = await sessionService.read(cookieValue);
     if (!session?.userId) return null;
+
+    return { userId: session.userId };
+}
+
+
+/**
+ * Gets the full user object from the database.
+ * This should be called from Server Components or API routes, not middleware.
+ */
+export async function getCurrentUser() {
+    if (!getFeature('FEATURE_ACCOUNT')) {
+        return null;
+    }
+    const session = await validateSession();
+    if (!session) return null;
     
-    // In a real app, you'd probably want to re-fetch the user from the DB
-    // to ensure the data is fresh. For MVP, we trust the session.
     const user = await iamService.findUserById(session.userId);
     
     return user;

@@ -1,38 +1,18 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { getFeature, getEnv } from '@/lib/server/config.server';
-import { getCurrentUser } from './lib/server/auth/auth.actions';
+import { validateSession } from './lib/server/auth/auth.actions';
 
 export const runtime = 'nodejs';
 
-async function handleOpsRoutes(request: NextRequest) {
-    const user = await getCurrentUser(); // This now reads the session cookie and gets user data
-
-    if (!user) {
+async function handleOpsRoutes(request: NextRequest, session: { userId: string } | null) {
+    if (!session) {
         return NextResponse.redirect(new URL('/login?next=' + request.nextUrl.pathname, request.url));
     }
     
-    const userRoles = user.roles || [];
-
-    const isEditor = userRoles.includes('ops.editor');
-    const isViewer = userRoles.includes('ops.viewer') || isEditor;
-
-    if (!isViewer) {
-         return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN_ACCESS' }, { status: 403 });
-    }
-
-    // For API requests, additionally check method access
-    if (request.nextUrl.pathname.startsWith('/api/ops')) {
-        // Viewer access for GET requests
-        if (request.method === 'GET' && !isViewer) {
-            return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN_VIEW' }, { status: 403 });
-        }
-
-        // Editor access for non-GET requests
-        if (request.method !== 'GET' && !isEditor) {
-             return NextResponse.json({ error: 'Forbidden', code: 'FORBIDDEN_EDIT' }, { status: 403 });
-        }
-    }
+    // For now, we can't check roles without a DB call.
+    // We'll rely on the page-level check. A simple session is enough for the middleware.
+    // A more advanced implementation might store roles in the session data in Redis.
     
     return NextResponse.next();
 }
@@ -41,9 +21,18 @@ async function handleOpsRoutes(request: NextRequest) {
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     
+    // --- Session validation ---
+    const session = await validateSession();
+
     // --- OPS Routes Protection ---
     if (pathname.startsWith('/ops') || pathname.startsWith('/api/ops')) {
-        return handleOpsRoutes(request);
+        // The ops routes are protected by default, so we need a valid session.
+        if (!session) {
+            return NextResponse.redirect(new URL('/login?next=' + request.nextUrl.pathname, request.url));
+        }
+        // Detailed role checks will happen on the page/api route level,
+        // as middleware should stay lightweight.
+        return NextResponse.next();
     }
     
     // --- Customer Routes Protection ---
@@ -54,18 +43,13 @@ export async function middleware(request: NextRequest) {
     }
     
     if (isAccountFeatureEnabled) {
-        // We can't use `getCurrentUser` here directly because it's async and middleware needs to be fast.
-        // The check for the cookie is a good-enough signal here.
-        const cookieName = getEnv('COOKIE_NAME');
-        const sessionCookie = request.cookies.get(cookieName);
-
-        if (pathname.startsWith('/account') && !sessionCookie) {
+        if (pathname.startsWith('/account') && !session) {
             const loginUrl = new URL('/login', request.url);
             loginUrl.searchParams.set('next', pathname);
             return NextResponse.redirect(loginUrl);
         }
 
-        if ((pathname.startsWith('/login') || pathname.startsWith('/verify')) && sessionCookie) {
+        if ((pathname.startsWith('/login') || pathname.startsWith('/verify')) && session) {
             const nextUrl = request.nextUrl.searchParams.get('next');
             return NextResponse.redirect(new URL(nextUrl || '/account', request.url));
         }
