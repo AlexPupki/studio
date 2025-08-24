@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
         destination:
           process.env.NODE_ENV === 'development'
             ? 'http://localhost:9003/cms/:path*'
-            : '/cms/',
+            : 'http://localhost:9003/cms/:path*',
       },
     ]
   },

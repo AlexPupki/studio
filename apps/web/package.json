@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 9002",
+    "dev": "concurrently \"pnpm:dev:cms\" \"pnpm:dev:web-only\"",
+    "dev:web-only": "next dev -p 9002",
+    "dev:cms": "pnpm --filter cms dev",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
@@ -77,6 +79,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^8.2.2",
     "drizzle-kit": "^0.23.0",
     "genkit-cli": "^1.14.1",
     "jsdom": "^24.1.1",
