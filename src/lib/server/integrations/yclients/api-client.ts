@@ -1,4 +1,3 @@
-'use server';
 
 import { getEnv } from '@/lib/server/config.server';
 import { ApiError } from '@/lib/server/http/errors';
