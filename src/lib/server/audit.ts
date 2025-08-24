@@ -3,6 +3,10 @@
 import { db } from "./db";
 import { auditEvents } from "./db/schema";
 import type { actorTypeEnum, entityTypeEnum } from "./db/schema";
+import { logger } from "../logger";
+
+const auditLogger = logger.withCategory('AUDIT');
+
 
 interface AuditLog {
   traceId: string;
@@ -34,8 +38,9 @@ export async function audit(log: AuditLog): Promise<void> {
       entityId: log.entity.id,
       data: log.data,
     });
+    auditLogger.info(log.action, { actor: log.actor, entity: log.entity, traceId: log.traceId });
   } catch (error) {
-    console.error("Failed to write to audit log:", error, log);
+    auditLogger.error("Failed to write to audit log", { error, log });
     // In a real production system, you might want to send this to a fallback logger.
   }
 }

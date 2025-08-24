@@ -5,7 +5,9 @@ import { db } from '../db';
 import { requestLogs } from '../db/schema';
 import { getIp } from '../http/ip';
 import { audit } from '../audit';
+import { logger } from '@/lib/logger';
 
+const errorLogger = logger.withCategory('API_ERROR');
 /**
  * A standard format for API errors.
  */
@@ -70,9 +72,12 @@ export function withApiError(
     let response: Response;
     let errorCode: string | undefined;
 
+    const requestLogger = logger.withCategory('HTTP');
+    requestLogger.time(`${method}:${urlPath}`);
+
     try {
       response = await handler(req, traceId);
-      console.log(`[${traceId}] <== ${method} ${urlPath} ${response.status} ${response.statusText}`);
+      requestLogger.info(`Request processed`, { traceId, method, urlPath, status: response.status });
       return response;
     } catch (error) {
       let apiError: ApiError;
@@ -87,7 +92,7 @@ export function withApiError(
       }
       
       errorCode = apiError.code;
-      console.error(`[${traceId}] <== ${method} ${urlPath} ${apiError.statusCode} ERROR: ${apiError.message}`, apiError.details || '');
+      errorLogger.error(`API Error: ${apiError.message}`, error, { traceId, method, urlPath, status: apiError.statusCode });
       
       // Audit critical errors
       if (apiError.statusCode >= 500) {
@@ -109,6 +114,8 @@ export function withApiError(
       return response;
     } finally {
         const durationMs = Date.now() - startTime;
+        requestLogger.timeEnd(`${method}:${urlPath}`);
+
         // Fire-and-forget the log writing
         db.insert(requestLogs).values({
             traceId,
@@ -120,7 +127,7 @@ export function withApiError(
             errorCode,
             // TODO: Add userId and role once auth is integrated
         }).catch(err => {
-            console.error(`[${traceId}] Failed to write request log:`, err);
+            errorLogger.error(`Failed to write request log`, err, { traceId });
         });
     }
   };

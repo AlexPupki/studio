@@ -3,7 +3,9 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getEnv } from './config.server';
+import { logger } from '../logger';
 
+const gcsLogger = logger.withCategory('GCS_SERVICE');
 let s3Client: S3Client | undefined;
 
 export function getS3Client(): S3Client {
@@ -17,10 +19,11 @@ export function getS3Client(): S3Client {
     const secretAccessKey = getEnv('S3_SECRET_ACCESS_KEY');
 
     if (!endpoint || !region || !accessKeyId || !secretAccessKey) {
+        gcsLogger.error('S3 client configuration is incomplete.');
         throw new Error("S3 client configuration is incomplete. Please check environment variables.");
     }
     
-    console.log(`Initializing S3 client for endpoint: ${endpoint} and region: ${region}`);
+    gcsLogger.debug(`Initializing S3 client for endpoint: ${endpoint} and region: ${region}`);
 
     s3Client = new S3Client({
         endpoint,
@@ -47,8 +50,10 @@ export async function generateUploadUrl(
 ): Promise<{ url: string; path: string }> {
     const bucketName = getEnv('S3_BUCKET_NAME');
      if (!bucketName) {
+        gcsLogger.error('S3_BUCKET_NAME environment variable is not set.');
         throw new Error("S3_BUCKET_NAME environment variable is not set.");
     }
+    gcsLogger.time(`generateUploadUrl:${fileName}`);
     const client = getS3Client();
     const expiresIn = getEnv('S3_SIGNED_URL_TTL_SECONDS');
 
@@ -59,7 +64,8 @@ export async function generateUploadUrl(
     });
     
     const url = await getSignedUrl(client, command, { expiresIn });
-
+    gcsLogger.info('Generated signed URL for upload', { fileName, path: fileName });
+    gcsLogger.timeEnd(`generateUploadUrl:${fileName}`);
     return { url, path: fileName };
 }
 
@@ -73,8 +79,10 @@ export async function generateDownloadUrl(
 ): Promise<string> {
     const bucketName = getEnv('S3_BUCKET_NAME');
      if (!bucketName) {
+        gcsLogger.error('S3_BUCKET_NAME environment variable is not set.');
         throw new Error("S3_BUCKET_NAME environment variable is not set.");
     }
+    gcsLogger.time(`generateDownloadUrl:${filePath}`);
     const client = getS3Client();
     const expiresIn = getEnv('S3_SIGNED_URL_TTL_SECONDS');
 
@@ -84,6 +92,7 @@ export async function generateDownloadUrl(
     });
 
     const url = await getSignedUrl(client, command, { expiresIn });
-
+    gcsLogger.info('Generated signed URL for download', { filePath });
+    gcsLogger.timeEnd(`generateDownloadUrl:${filePath}`);
     return url;
 }
