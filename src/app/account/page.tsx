@@ -1,6 +1,4 @@
 
-'use server';
-
 export const runtime = 'nodejs';
 
 import { redirect } from 'next/navigation';
@@ -29,7 +27,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { MainLayout } from '@/components/main-layout';
 
 export default async function AccountPage() {
@@ -98,35 +95,56 @@ export default async function AccountPage() {
                 <CardDescription>Ниже показаны ваши последние 5 бронирований.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Код</TableHead>
-                            <TableHead>Статус</TableHead>
-                            <TableHead>Кол-во</TableHead>
-                            <TableHead>Дата</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <div className="hidden md:block">
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>Код</TableHead>
+                              <TableHead>Статус</TableHead>
+                              <TableHead>Кол-во</TableHead>
+                              <TableHead>Дата</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                      {userBookings.length === 0 && (
+                          <TableRow>
+                          <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">У вас еще нет бронирований.</TableCell>
+                          </TableRow>
+                      )}
+                      {userBookings.map((booking) => (
+                          <TableRow key={booking.id}>
+                              <TableCell className="font-mono">{booking.code}</TableCell>
+                              <TableCell>
+                                  <Badge variant={booking.state === 'confirm' ? 'default' : 'secondary'}>
+                                  {booking.state}
+                                  </Badge>
+                              </TableCell>
+                              <TableCell>{booking.qty}</TableCell>
+                              <TableCell>{booking.createdAt?.toLocaleDateString('ru-RU')}</TableCell>
+                          </TableRow>
+                      ))}
+                      </TableBody>
+                  </Table>
+                </div>
+                <ul className="md:hidden space-y-4">
                     {userBookings.length === 0 && (
-                        <TableRow>
-                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">У вас еще нет бронирований.</TableCell>
-                        </TableRow>
+                        <li className="text-center text-muted-foreground py-8">У вас еще нет бронирований.</li>
                     )}
                     {userBookings.map((booking) => (
-                        <TableRow key={booking.id}>
-                            <TableCell className="font-mono">{booking.code}</TableCell>
-                            <TableCell>
-                                <Badge variant={booking.state === 'confirm' ? 'default' : 'secondary'}>
+                        <li key={booking.id} className="rounded-lg border p-4 space-y-3">
+                          <div className="flex justify-between items-start">
+                            <span className="font-mono text-sm font-semibold">{booking.code}</span>
+                            <Badge variant={booking.state === 'confirm' ? 'default' : 'secondary'}>
                                 {booking.state}
-                                </Badge>
-                            </TableCell>
-                            <TableCell>{booking.qty}</TableCell>
-                            <TableCell>{booking.createdAt?.toLocaleDateString('ru-RU')}</TableCell>
-                        </TableRow>
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Кол-во: {booking.qty}</span>
+                            <span className="text-muted-foreground">{booking.createdAt?.toLocaleDateString('ru-RU')}</span>
+                          </div>
+                        </li>
                     ))}
-                    </TableBody>
-                </Table>
+                </ul>
             </CardContent>
         </Card>
         </div>
