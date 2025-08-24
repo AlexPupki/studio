@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)'],
-        heading: ['var(--font-manrope)'],
+        sans: ['var(--font-inter)', 'sans-serif'],
+        heading: ['var(--font-manrope)', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

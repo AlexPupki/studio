@@ -6,12 +6,12 @@ import { GoogleAnalytics } from '@/components/google-analytics';
 import { Inter, Manrope } from 'next/font/google';
 
 const inter = Inter({
-  subsets: ['latin'],
+  subsets: ['latin', 'cyrillic'],
   variable: '--font-inter',
 });
 
 const manrope = Manrope({
-  subsets: ['latin'],
+  subsets: ['latin', 'cyrillic'],
   variable: '--font-manrope',
 });
 

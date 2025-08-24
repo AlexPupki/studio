@@ -21,9 +21,9 @@ export default async function RoutesPage() {
 
   return (
     <MainLayout>
-        <div className="container mx-auto p-4 md:p-8 space-y-8">
+        <div className="container mx-auto p-4 md:p-8 space-y-12">
         <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold font-heading">Наши маршруты</h1>
+            <h1 className="text-4xl md:text-5xl font-bold font-heading tracking-tight">Наши маршруты</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Выберите идеальное приключение из нашего каталога эксклюзивных туров.
             </p>
@@ -31,24 +31,28 @@ export default async function RoutesPage() {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {allRoutes.map(route => (
-            <Card key={route.id} className="flex flex-col">
-                <CardHeader>
-                {route.gallery?.[0] && (
-                    <div className="aspect-video relative w-full overflow-hidden rounded-t-lg">
+             <Card key={route.id} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader className="p-0">
+                {route.gallery?.[0] ? (
+                    <div className="aspect-video relative w-full">
                         <Image src={route.gallery[0]} alt={route.title.ru} fill className="object-cover" data-ai-hint="tour image" />
                     </div>
+                ): (
+                   <div className="aspect-video relative w-full bg-secondary">
+                        <Image src="https://placehold.co/600x400.png" alt="Placeholder" fill className="object-cover" data-ai-hint="tour landscape" />
+                   </div>
                 )}
-                <CardTitle>{route.title.ru}</CardTitle>
-                <CardDescription>{route.description?.ru.substring(0, 100)}...</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow">
-                <p className="text-lg font-semibold">{new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(route.basePriceMinor / 100)}</p>
-                <p className="text-sm text-muted-foreground">Длительность: {route.durationMinutes} минут</p>
+                <CardContent className="flex-grow p-6 space-y-3">
+                    <CardTitle className="text-xl font-heading">{route.title.ru}</CardTitle>
+                    <CardDescription>{route.description?.ru.substring(0, 120)}...</CardDescription>
+                     <div className="text-sm text-muted-foreground pt-2">Длительность: {route.durationMinutes} минут</div>
                 </CardContent>
-                <CardFooter>
-                <Button asChild className="w-full">
-                    <Link href={`/routes/${route.slug}`}>Подробнее и забронировать</Link>
-                </Button>
+                <CardFooter className="p-6 bg-muted/50 flex justify-between items-center">
+                    <p className="text-xl font-bold font-heading">{new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(route.basePriceMinor / 100)}</p>
+                    <Button asChild>
+                        <Link href={`/routes/${route.slug}`}>Подробнее</Link>
+                    </Button>
                 </CardFooter>
             </Card>
             ))}

@@ -1,8 +1,9 @@
+
 'use server';
 
 export const runtime = 'nodejs';
 
-import { redirect, useRouter } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -31,24 +32,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { MainLayout } from '@/components/main-layout';
 
-function LogoutButton() {
-    const handleLogout = async () => {
-        await logout();
-        // This is a client component, so we can use useRouter
-        // but since logout now redirects, this is not strictly necessary
-        // but good for UX.
-        window.location.href = '/login';
-    }
-    return (
-        <form action={logout}>
-            <Button variant="outline" type="submit">
-                Выйти
-            </Button>
-        </form>
-    )
-}
-
-
 export default async function AccountPage() {
   const user = await getCurrentUser();
 
@@ -72,48 +55,47 @@ export default async function AccountPage() {
 
   return (
     <MainLayout>
-        <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8">
+        <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-10">
         <div className="space-y-2">
-            <h1 className="text-3xl font-bold font-heading">Личный кабинет</h1>
-            <p className="text-muted-foreground">Добро пожаловать, {userName}! Здесь вы можете управлять своим аккаунтом и бронированиями.</p>
+            <h1 className="text-4xl font-bold font-heading tracking-tight">Личный кабинет</h1>
+            <p className="text-lg text-muted-foreground">Добро пожаловать, {userName}! Здесь вы можете управлять своим аккаунтом и бронированиями.</p>
         </div>
-        <Separator/>
-
-        <Card>
+        
+        <Card className="shadow-lg">
             <CardHeader>
-            <CardTitle>Ваш профиль</CardTitle>
+            <CardTitle className="font-heading text-2xl">Ваш профиль</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                <h3 className="font-medium text-sm text-muted-foreground">Номер телефона</h3>
-                <p>{user.phoneE164}</p>
+            <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                <div className="space-y-1">
+                    <h3 className="font-medium text-sm text-muted-foreground">Номер телефона</h3>
+                    <p className="text-lg">{user.phoneE164}</p>
                 </div>
-                <div>
-                <h3 className="font-medium text-sm text-muted-foreground">Уровень членства</h3>
-                <p>{membershipLevel}</p>
+                <div className="space-y-1">
+                    <h3 className="font-medium text-sm text-muted-foreground">Уровень членства</h3>
+                    <p className="text-lg">{membershipLevel}</p>
                 </div>
-                <div>
-                <h3 className="font-medium text-sm text-muted-foreground">Дата регистрации</h3>
-                <p>
-                    {new Date(user.createdAt).toLocaleDateString('ru-RU')}
-                </p>
+                <div className="space-y-1">
+                    <h3 className="font-medium text-sm text-muted-foreground">Дата регистрации</h3>
+                    <p className="text-lg">
+                        {new Date(user.createdAt).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                 </div>
             </div>
             </CardContent>
             <CardFooter>
                  <form action={logout}>
                     <Button variant="outline" type="submit">
-                        Выйти
+                        Выйти из аккаунта
                     </Button>
                 </form>
             </CardFooter>
         </Card>
 
-        <Card>
+        <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle>Последние бронирования</CardTitle>
-                <CardDescription>Ваши последние 5 бронирований.</CardDescription>
+                <CardTitle className="font-heading text-2xl">Последние бронирования</CardTitle>
+                <CardDescription>Ниже показаны ваши последние 5 бронирований.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -128,7 +110,7 @@ export default async function AccountPage() {
                     <TableBody>
                     {userBookings.length === 0 && (
                         <TableRow>
-                        <TableCell colSpan={4} className="text-center h-24">У вас еще нет бронирований.</TableCell>
+                        <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">У вас еще нет бронирований.</TableCell>
                         </TableRow>
                     )}
                     {userBookings.map((booking) => (
