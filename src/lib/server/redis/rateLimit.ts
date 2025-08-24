@@ -1,39 +1,24 @@
+
 'use server';
 import { redisClient } from '.';
 import { getIp } from '../http/ip';
 import { ApiError } from '../http/errors';
-
-type TimeUnit = 's' | 'm' | 'h' | 'd';
-
-function parseDuration(duration: `${number}${TimeUnit}`): number {
-    const unit = duration.slice(-1) as TimeUnit;
-    const value = parseInt(duration.slice(0, -1), 10);
-
-    switch (unit) {
-        case 's': return value;
-        case 'm': return value * 60;
-        case 'h': return value * 60 * 60;
-        case 'd': return value * 60 * 60 * 24;
-        default: throw new Error('Invalid time unit');
-    }
-}
 
 /**
  * Limits the rate of requests for a given identifier within a sliding window.
  * Throws an ApiError if the rate limit is exceeded.
  * @param identifier A unique identifier for the action being rate-limited.
  * @param limit The maximum number of requests allowed within the window.
- * @param window A string representing the time window (e.g., '60s', '1m', '1h').
+ * @param windowSec The time window in seconds.
  * @param key (Optional) A specific key to rate limit on (e.g., userId, phone number). Defaults to the client's IP address.
  */
-export async function rateLimit(identifier: string, limit: number, window: `${number}${TimeUnit}`, key?: string): Promise<void> {
+export async function rateLimit(identifier: string, limit: number, windowSec: number, key?: string): Promise<void> {
     const targetKey = key || getIp();
     if (!targetKey) {
         // Cannot rate limit if no key is available
         return;
     }
     const redisKey = `rl:${identifier}:${targetKey}`;
-    const windowSec = parseDuration(window);
 
     const now = Date.now();
     const windowStart = now - windowSec * 1000;
@@ -65,6 +50,6 @@ export async function rateLimit(identifier: string, limit: number, window: `${nu
 }
 
 
-export async function rateLimitByIp(identifier: string, limit: number, window: `${number}${TimeUnit}`): Promise<void> {
-    return rateLimit(identifier, limit, window, getIp());
+export async function rateLimitByIp(identifier: string, limit: number, windowSec: number): Promise<void> {
+    return rateLimit(identifier, limit, windowSec, getIp());
 }
