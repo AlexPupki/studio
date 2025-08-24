@@ -193,7 +193,13 @@ const EnvSchema = z.object({
   JWT_SECRET: z.string().min(32).optional(), // Обязателен, если FEATURE_OPS_CONSOLE=true для API
   CRON_SECRET: z.string().min(32), // Секрет для проверки вызовов от Cloud Scheduler
 
-  DATABASE_URL: z.string().url(),
+  // Database
+  PG_HOST: z.string(),
+  PG_PORT: z.coerce.number().int().positive(),
+  PG_USER: z.string(),
+  PG_PASSWORD: z.string(),
+  PG_DATABASE: z.string(),
+  
   REDIS_URL: z.string().url(), // Обязателен для production
 
   // GCS
@@ -397,7 +403,11 @@ export async function GET(req: NextRequest) {
       APP_BASE_URL: https://example.test
       COOKIE_SECRET_CURRENT: test_cookie_secret_32_bytes_min________
       CRON_SECRET: test_cron_secret_32_bytes_min__________
-      DATABASE_URL: postgres://test:test@localhost:5432/test
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: test
+      PG_PASSWORD: test
+      PG_DATABASE: test
       REDIS_URL: redis://localhost:6379
       GCS_BUCKET: gts-mvp-media-euw4
       # Валидный, но фейковый JSON для прохождения Zod-валидации в CI
@@ -425,7 +435,12 @@ JWT_SECRET=
 CRON_SECRET=change_me_to_a_secure_random_string_for_cron
 
 # Data Stores
-DATABASE_URL=postgres://user:pass@localhost:5432/gts
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=user
+PG_PASSWORD=pass
+PG_DATABASE=gts
+
 REDIS_URL=redis://localhost:6379
 
 # Google Cloud Storage

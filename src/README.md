@@ -1,3 +1,4 @@
+
 # Firebase Studio
 
 This is a NextJS starter in Firebase Studio.
@@ -46,8 +47,17 @@ Store your production environment variables in Google Secret Manager.
 
 ```bash
 # Replace [YOUR_PROJECT_ID] with your Google Cloud project ID
-gcloud secrets create "DATABASE_URL" --project="[YOUR_PROJECT_ID]"
-gcloud secrets versions add "DATABASE_URL" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "postgres://user:pass@host:port/db"
+gcloud secrets create "PG_HOST" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_HOST" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-host"
+
+gcloud secrets create "PG_USER" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_USER" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-user"
+
+gcloud secrets create "PG_PASSWORD" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_PASSWORD" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-password"
+
+gcloud secrets create "PG_DATABASE" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_DATABASE" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-name"
 
 gcloud secrets create "REDIS_URL" --project="[YOUR_PROJECT_ID]"
 gcloud secrets versions add "REDIS_URL" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "redis://..."
@@ -67,12 +77,12 @@ gcloud secrets versions add "PEPPER" --project="[YOUR_PROJECT_ID]" --data-file=-
 
 # Grant the App Hosting service account access to the secrets
 # You can find the service account email in the Google Cloud console
-gcloud secrets add-iam-policy-binding "DATABASE_URL" \
+gcloud secrets add-iam-policy-binding "PG_HOST" \
     --project="[YOUR_PROJECT_ID]" \
     --member="serviceAccount:service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com" \
     --role="roles/secretmanager.secretAccessor"
 
-# Repeat for REDIS_URL, JWT_SECRET, CRON_SECRET, SESSION_SECRET_KEY, and PEPPER
+# Repeat for PG_USER, PG_PASSWORD, PG_DATABASE, REDIS_URL, JWT_SECRET, CRON_SECRET, SESSION_SECRET_KEY, and PEPPER
 ```
 
 ### 2. Deploy

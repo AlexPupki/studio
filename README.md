@@ -45,9 +45,19 @@ For production, it is crucial to store your environment variables securely in a 
 ```bash
 # Replace [YOUR_PROJECT_ID] with your Google Cloud project ID
 
-# Database URL
-gcloud secrets create "DATABASE_URL" --project="[YOUR_PROJECT_ID]"
-gcloud secrets versions add "DATABASE_URL" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "postgres://user:pass@host:port/db"
+# Database Credentials
+gcloud secrets create "PG_HOST" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_HOST" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-host"
+
+gcloud secrets create "PG_USER" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_USER" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-user"
+
+gcloud secrets create "PG_PASSWORD" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_PASSWORD" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-password"
+
+gcloud secrets create "PG_DATABASE" --project="[YOUR_PROJECT_ID]"
+gcloud secrets versions add "PG_DATABASE" --project="[YOUR_PROJECT_ID]" --data-file=- <<< "your-db-name"
+
 
 # Session Secret Key (generate a long random string)
 gcloud secrets create "SESSION_SECRET_KEY" --project="[YOUR_PROJECT_ID]"
@@ -66,12 +76,12 @@ gcloud secrets versions add "GCS_BUCKET" --project="[YOUR_PROJECT_ID]" --data-fi
 # It usually looks like service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com
 SERVICE_ACCOUNT_EMAIL="service-p-[YOUR_PROJECT_ID]@gcp-sa-apphosting.iam.gserviceaccount.com"
 
-gcloud secrets add-iam-policy-binding "DATABASE_URL" \
+gcloud secrets add-iam-policy-binding "PG_HOST" \
     --project="[YOUR_PROJECT_ID]" \
     --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
     --role="roles/secretmanager.secretAccessor"
 
-# Repeat the binding for each secret: SESSION_SECRET_KEY, GEMINI_API_KEY, GCS_BUCKET etc.
+# Repeat the binding for each secret: PG_USER, PG_PASSWORD, PG_DATABASE, SESSION_SECRET_KEY, GEMINI_API_KEY, GCS_BUCKET etc.
 ```
 
 ### 2. Deploy
