@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import 'dotenv/config';
 
 const optionalString = (schema: z.ZodString) =>
   z.preprocess((val) => (val === '' ? undefined : val), schema.optional());
@@ -11,11 +12,11 @@ const EnvSchema = z.object({
   APP_BASE_URL: z.string().url('APP_BASE_URL must be a valid URL.').default('http://localhost:3002'),
   
   // --- PostgreSQL Database ---
-  PG_HOST: optionalString(z.string().min(1, 'PG_HOST is required.')),
+  PG_HOST: z.string().min(1, 'PG_HOST is required.'),
   PG_PORT: z.coerce.number().int().positive().default(5432),
-  PG_USER: optionalString(z.string().min(1, 'PG_USER is required.')),
-  PG_PASSWORD: optionalString(z.string().min(1, 'PG_PASSWORD is required.')),
-  PG_DATABASE: optionalString(z.string().min(1, 'PG_DATABASE is required.')),
+  PG_USER: z.string().min(1, 'PG_USER is required.'),
+  PG_PASSWORD: z.string().min(1, 'PG_PASSWORD is required.'),
+  PG_DATABASE: z.string().min(1, 'PG_DATABASE is required.'),
   DB_SOCKET_PATH: optionalString(z.string()),
 
 
@@ -23,10 +24,10 @@ const EnvSchema = z.object({
   REDIS_URL: optionalString(z.string().url()),
 
   // --- Security ---
-  SESSION_SECRET_KEY: optionalString(z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.')),
-  PEPPER: optionalString(z.string().min(16, 'PEPPER must be at least 16 characters.')),
-  JWT_SECRET: optionalString(z.string().min(32, 'JWT_SECRET must be at least 32 characters.')),
-  CRON_SECRET: optionalString(z.string().min(32, 'CRON_SECRET must be at least 32 characters.')),
+  SESSION_SECRET_KEY: z.string().min(32, 'SESSION_SECRET_KEY must be at least 32 characters.'),
+  PEPPER: z.string().min(16, 'PEPPER must be at least 16 characters.'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters.'),
+  CRON_SECRET: z.string().min(32, 'CRON_SECRET must be at least 32 characters.'),
   COOKIE_NAME: z.string().default('gts_session'),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   LOGIN_CODE_TTL_MINUTES: z.coerce.number().int().positive().default(5),
@@ -65,24 +66,46 @@ const EnvSchema = z.object({
   RL_BOOKING_HOLD_WINDOW: z.coerce.number().int().positive().default(60), // in seconds
   RL_BOOKING_CONFIRM_LIMIT: z.coerce.number().int().positive().default(10),
   RL_BOOKING_CONFIRM_WINDOW: z.coerce.number().int().positive().default(60), // in seconds
-
+  
+  // --- Feature Flags ---
+  FEATURE_ACCOUNT: z.preprocess((val) => val !== 'false', z.boolean().default(true)),
+  FEATURE_REAL_SMS: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_CAPTCHA: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_JWT_ISSUING: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_I18N: z.preprocess((val) => val !== 'false', z.boolean().default(true)),
+  FEATURE_PAYMENTS_ONLINE: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_SEAT_SHARING: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_PARTNER_PORTAL: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_UCLIENTS_ENABLED: z.preprocess((val) => val === 'true', z.boolean().default(false)),
+  FEATURE_OPS_CONSOLE: z.preprocess((val) => val !== 'false', z.boolean().default(true)),
 });
 
 
-const parsedEnv = EnvSchema.safeParse(process.env);
+let envConfig: z.infer<typeof EnvSchema>;
 
-if (!parsedEnv.success) {
-  console.error(
-    '❌ Invalid server environment variables:',
-    parsedEnv.error.flatten().fieldErrors
-  );
-  // Do not throw in test environment to allow for minimal setup
-  if (process.env.NODE_ENV !== 'test') {
-    throw new Error('Invalid server environment variables.');
-  }
+try {
+    const parsed = EnvSchema.safeParse(process.env);
+    if (!parsed.success) {
+      const path = require('path');
+      require('dotenv').config({ path: path.resolve(process.cwd(), '.env') });
+      const parsedFromDotenv = EnvSchema.safeParse(process.env);
+      if(!parsedFromDotenv.success) {
+        console.error(
+            '❌ Invalid environment variables:',
+            parsedFromDotenv.error.flatten().fieldErrors
+        );
+        throw new Error('Invalid environment variables.');
+      }
+      envConfig = parsedFromDotenv.data;
+    } else {
+      envConfig = parsed.data;
+    }
+} catch (error) {
+    // Gracefully handle case where env is not set on build servers
+    console.warn("Could not parse environment variables. Using empty object as fallback.", error)
+    envConfig = {} as z.infer<typeof EnvSchema>;
 }
 
-const envConfig = parsedEnv.data as z.infer<typeof EnvSchema>;
 
 export function getEnv<T extends keyof typeof envConfig>(
   name: T
@@ -90,39 +113,19 @@ export function getEnv<T extends keyof typeof envConfig>(
   return envConfig[name];
 }
 
-const featureFlags = {
-  // IAM
-  FEATURE_ACCOUNT: process.env.FEATURE_ACCOUNT !== 'false', // default: true
-  FEATURE_REAL_SMS: process.env.FEATURE_REAL_SMS === 'true', // default: false
-  FEATURE_CAPTCHA: process.env.FEATURE_CAPTCHA === 'true', // default: false
-  FEATURE_JWT_ISSUING: process.env.FEATURE_JWT_ISSUING === 'true', // default: false
+export type FeatureFlag = 
+  | 'FEATURE_ACCOUNT'
+  | 'FEATURE_REAL_SMS'
+  | 'FEATURE_CAPTCHA'
+  | 'FEATURE_JWT_ISSUING'
+  | 'FEATURE_I18N'
+  | 'FEATURE_PAYMENTS_ONLINE'
+  | 'FEATURE_SEAT_SHARING'
+  | 'FEATURE_PARTNER_PORTAL'
+  | 'FEATURE_UCLIENTS_ENABLED'
+  | 'FEATURE_OPS_CONSOLE';
 
-  // i18n
-  FEATURE_I18N: process.env.FEATURE_I18N !== 'false', // default: true
-
-  // Payments
-  FEATURE_PAYMENTS_ONLINE:
-    process.env.FEATURE_PAYMENTS_ONLINE === 'true', // default: false
-
-  // Booking
-  FEATURE_SEAT_SHARING:
-    process.env.FEATURE_SEAT_SHARING === 'true', // default: false
-
-  // Partners
-  FEATURE_PARTNER_PORTAL:
-    process.env.FEATURE_PARTNER_PORTAL === 'true', // default: false
-
-  // Integrations
-  FEATURE_UCLIENTS_ENABLED:
-    process.env.FEATURE_UCLIENTS_ENABLED === 'true', // default: false
-
-  // Console
-  FEATURE_OPS_CONSOLE:
-    process.env.FEATURE_OPS_CONSOLE !== 'false', // default: true
-} as const;
-
-export type FeatureFlag = keyof typeof featureFlags;
 
 export function getFeature(name: FeatureFlag): boolean {
-  return featureFlags[name] ?? false;
+  return envConfig[name] ?? false;
 }

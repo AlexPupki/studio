@@ -1,3 +1,4 @@
+
 import {
   boolean,
   char,
@@ -10,11 +11,13 @@ import {
   serial,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   index,
   bigint,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // --- ENUMS ---
 export const userStatusEnum = pgEnum('user_status', ['active', 'blocked']);
@@ -70,13 +73,13 @@ export const postStatusEnum = pgEnum('post_status', [
 // --- TABLES ---
 
 export const users = pgTable('users', {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     phoneE164: text('phone_e164').notNull().unique(),
     status: userStatusEnum('status').default('active').notNull(),
-    roles: userRoleEnum('roles').array().default(['customer']).notNull(),
+    roles: userRoleEnum('roles').array().default(sql`'{"customer"}'::user_role[]`).notNull(),
     preferredLanguage: char('preferred_language', { length: 2 }).default('ru').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    lastLoginAt: timestamp('last_login_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }).notNull().default(sql`now()`),
 });
 
 export const loginCodes = pgTable('login_codes', {
@@ -85,11 +88,11 @@ export const loginCodes = pgTable('login_codes', {
     codeHash: text('code_hash').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     used: boolean('used').default(false).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
 });
 
 export const pages = pgTable('pages', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   slug: text('slug').notNull().unique(),
   status: pageStatusEnum('status').default('draft').notNull(),
   title: text('title').notNull(),
@@ -97,35 +100,35 @@ export const pages = pgTable('pages', {
   seoMeta: jsonb('seo_meta').$type<Record<string, string>>(),
   authorId: text('author_id'), // Assuming author is a user ID (string)
   publishedAt: timestamp('published_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`now()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`now()`),
 });
 
 export const pageVersions = pgTable('page_versions', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   pageId: uuid('page_id')
     .notNull()
     .references(() => pages.id, { onDelete: 'cascade' }),
   version: integer('version').notNull(),
   contentBlocks: jsonb('content_blocks').$type<any[]>(),
   authorId: text('author_id'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`now()`),
 });
 
 export const categories = pgTable('categories', {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     slug: text('slug').notNull().unique(),
     name: text('name').notNull(),
 });
 
 export const tags = pgTable('tags', {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     slug: text('slug').notNull().unique(),
     name: text('name').notNull(),
 });
 
 export const posts = pgTable('posts', {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     slug: text('slug').notNull().unique(),
     title: text('title').notNull(),
     content: text('content'),
@@ -135,8 +138,8 @@ export const posts = pgTable('posts', {
     authorId: text('author_id'), // Assuming a simple string ID for now
     categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'set null' }),
     publishedAt: timestamp('published_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).default(sql`now()`),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`now()`),
 });
 
 export const postsToTags = pgTable('posts_to_tags', {
@@ -148,7 +151,7 @@ export const postsToTags = pgTable('posts_to_tags', {
 );
 
 export const routes = pgTable('routes', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   slug: text('slug').notNull().unique(),
   status: routeStatusEnum('status').default('draft').notNull(),
   title: jsonb('title').$type<Record<string, string>>().notNull(),
@@ -157,14 +160,14 @@ export const routes = pgTable('routes', {
   durationMinutes: integer('duration_minutes').notNull(),
   basePriceMinor: bigint('base_price_minor', { mode: 'number' }).notNull(),
   gallery: text('gallery').array(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).default(sql`now()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`now()`),
 });
 
 export const slots = pgTable(
   'slots',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     routeId: uuid('route_id')
       .notNull()
       .references(() => routes.id),
@@ -182,7 +185,7 @@ export const slots = pgTable(
       ),
       capacityCheck: check(
         'capacity_check',
-        `"capacity_total" >= "capacity_held" + "capacity_confirmed" AND "capacity_total" >= 0 AND "capacity_held" >= 0 AND "capacity_confirmed" >= 0`
+        sql`"capacity_total" >= "capacity_held" + "capacity_confirmed" AND "capacity_total" >= 0 AND "capacity_held" >= 0 AND "capacity_confirmed" >= 0`
       ),
     };
   }
@@ -191,7 +194,7 @@ export const slots = pgTable(
 export const bookings = pgTable(
   'bookings',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     code: text('code').notNull().unique(),
     state: bookingStateEnum('state').notNull(),
     cancelReason: bookingCancelReasonEnum('cancel_reason'),
@@ -203,8 +206,8 @@ export const bookings = pgTable(
     customerPhoneE164: text('customer_phone_e164').notNull(),
     paymentRef: text('payment_ref'),
     holdExpiresAt: timestamp('hold_expires_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).default(sql`now()`),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).default(sql`now()`),
   },
   (table) => {
     return {
@@ -216,7 +219,7 @@ export const bookings = pgTable(
 export const invoices = pgTable(
   'invoices',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     bookingId: uuid('booking_id')
       .notNull()
       .references(() => bookings.id)
@@ -226,7 +229,7 @@ export const invoices = pgTable(
     currency: char('currency', { length: 3 }).notNull().default('RUB'),
     status: invoiceStatusEnum('status').notNull(),
     pdfPath: text('pdf_path'),
-    issuedAt: timestamp('issued_at', { withTimezone: true }).defaultNow(),
+    issuedAt: timestamp('issued_at', { withTimezone: true }).default(sql`now()`),
     paidAt: timestamp('paid_at', { withTimezone: true }),
   },
   (table) => {
@@ -239,10 +242,10 @@ export const invoices = pgTable(
 export const idempotencyKeys = pgTable(
   'idempotency_keys',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
     scope: text('scope').notNull(),
     key: text('key').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).default(sql`now()`),
   },
   (table) => {
     return {
@@ -255,8 +258,8 @@ export const idempotencyKeys = pgTable(
 );
 
 export const requestLogs = pgTable('request_logs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ts: timestamp('ts', { withTimezone: true }).defaultNow().notNull(),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  ts: timestamp('ts', { withTimezone: true }).notNull().default(sql`now()`),
   traceId: uuid('trace_id').notNull(),
   userId: text('user_id'),
   role: text('role'),
@@ -269,8 +272,8 @@ export const requestLogs = pgTable('request_logs', {
 });
 
 export const auditEvents = pgTable('audit_events', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  ts: timestamp('ts', { withTimezone: true }).defaultNow().notNull(),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  ts: timestamp('ts', { withTimezone: true }).notNull().default(sql`now()`),
   traceId: uuid('trace_id'),
   actorType: actorTypeEnum('actor_type').notNull(),
   actorId: text('actor_id'),
