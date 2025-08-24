@@ -1,30 +1,32 @@
-# NPM Scripts Breakdown
+# Обзор NPM-скриптов
 
-This document provides a clear overview of the `scripts` sections from all `package.json` files in the project. It explains the purpose of each script and how they work together to create a stable and predictable development environment.
+Этот документ предоставляет ясный обзор секций `scripts` из всех `package.json` файлов в проекте. Он объясняет назначение каждого скрипта и то, как они работают вместе для создания стабильного и предсказуемого окружения для разработки.
 
-## 1. Root `package.json`
+## 1. Корневой `package.json`
 
-This file acts as the main conductor for the entire project. Its scripts are designed to manage the workspaces (`apps/web` and `cms`) in a robust way, using a Node.js runner to prevent command-line argument issues.
+Этот файл выступает как главный дирижер для всего проекта. Его скрипты спроектированы для управления воркспейсами (`apps/web` и `apps/cms`) надежным способом, используя Node.js-раннер для предотвращения проблем с аргументами командной строки.
 
 ```json
 {
   "scripts": {
-    "dev": "npm run dev:web",
+    "dev": "node scripts/dev-web.mjs",
     "dev:web": "node scripts/dev-web.mjs",
-    "dev:cms": "npm run dev --workspace apps/cms",
-    "dev:all": "npm-run-all --parallel dev:web dev:cms"
+    "dev:cms": "pnpm run dev --workspace apps/cms",
+    "dev:all": "npm-run-all --parallel dev:web dev:cms",
+    "build": "pnpm run build --workspaces",
+    "start": "pnpm run start --workspace apps/web"
   }
 }
 ```
 
-- **`dev`**: The primary script for the Firebase Studio preview environment. It defaults to running the web application.
-- **`dev:web`**: This is the key to our stable setup. It executes a dedicated Node.js script (`scripts/dev-web.mjs`) that reads the `.env` file and starts the Next.js server with the correct port and host. This completely isolates it from any arguments passed by the parent environment, solving the "invalid directory" error.
-- **`dev:cms`**: A standard command to run the Payload CMS workspace.
-- **`dev:all`**: A utility script for local development that runs both the web application and the CMS in parallel.
+- **`dev`**: Основной скрипт для среды предпросмотра Firebase Studio. Он по умолчанию запускает веб-приложение, используя кастомный раннер.
+- **`dev:web`**: Этот скрипт — ключ к нашей стабильной настройке. Он выполняет выделенный Node.js скрипт (`scripts/dev-web.mjs`), который корректно обрабатывает аргументы и запускает сервер Next.js с правильным портом и хостом. Это полностью изолирует его от любых аргументов, передаваемых родительской средой.
+- **`dev:cms`**: Стандартная команда для запуска воркспейса Payload CMS.
+- **`dev:all`**: Утилитарный скрипт для локальной разработки, который запускает и веб-приложение, и CMS параллельно.
 
 ## 2. `apps/web/package.json`
 
-The Next.js application's scripts are now extremely simple, as the complexity is handled by the runner script in the root.
+Скрипты Next.js-приложения теперь предельно просты, так как вся сложность инкапсулирована в раннере в корне проекта.
 
 ```json
 {
@@ -36,11 +38,11 @@ The Next.js application's scripts are now extremely simple, as the complexity is
 }
 ```
 
-- **`dev`**: Simply starts the Next.js development server. It expects the port and host to be provided by the environment, which our `dev-web.mjs` runner does.
+- **`dev`**: Просто запускает сервер для разработки Next.js. Он ожидает, что порт и хост будут предоставлены окружением, что и делает наш раннер `dev-web.mjs`.
 
 ## 3. `apps/cms/package.json`
 
-The Payload CMS application's scripts are also straightforward.
+Скрипты приложения Payload CMS также прямолинейны.
 
 ```json
 {
@@ -52,4 +54,4 @@ The Payload CMS application's scripts are also straightforward.
 }
 ```
 
-- **`dev`**: Starts the Payload CMS development server. It's configured to run on a separate port defined in the `.env` file (`PORT_CMS`).
+- **`dev`**: Запускает сервер для разработки Payload CMS. Он настроен на запуск на отдельном порту, определенном в `.env` файле (`PORT_CMS`).
