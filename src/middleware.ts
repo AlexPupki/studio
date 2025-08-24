@@ -24,8 +24,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // --- Session validation ---
-  const cookieName = getEnv('COOKIE_NAME');
-  // The `get` method on `request.cookies` returns a cookie object or undefined, not the value directly.
+  // Use direct access to process.env in middleware as getEnv might not be initialized
+  const cookieName = process.env.COOKIE_NAME || 'gts_session';
   const token = request.cookies.get(cookieName)?.value;
   const { payload, error } = await verifyAuth(token);
   const isAuthenticated = !error;
