@@ -1,7 +1,7 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // matching all API routes
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
@@ -44,8 +43,8 @@ const nextConfig: NextConfig = {
         source: '/cms/:path*',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'http://localhost:9003/cms/:path*'
-            : 'http://localhost:9003/cms/:path*',
+            ? 'http://localhost:9003/:path*'
+            : 'http://localhost:9003/:path*',
       },
     ]
   },
