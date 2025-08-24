@@ -1,12 +1,12 @@
 'use server';
 
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getEnv } from './config.server';
 
 let s3Client: S3Client | undefined;
 
-function getS3Client(): S3Client {
+export function getS3Client(): S3Client {
     if (s3Client) {
         return s3Client;
     }
