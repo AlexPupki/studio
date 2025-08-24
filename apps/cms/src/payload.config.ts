@@ -2,19 +2,15 @@ import { buildConfig } from 'payload/config'
 import path from 'path'
 import { slateEditor } from '@payloadcms/richtext-slate'
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { parse } from 'pg-connection-string'
+import 'dotenv/config'
 
 import { Examples } from './collections/Examples'
 
-// Считываем URL базы данных из переменных окружения
-const connectionString = process.env.PG_HOST
-
-if (!connectionString) {
-  throw new Error('PG_HOST environment variable is not set')
+if (!process.env.PG_HOST || !process.env.PG_USER || !process.env.PG_DATABASE) {
+  throw new Error(
+    'Database connection details are not fully set in environment variables.'
+  )
 }
-
-// Парсим URL, чтобы извлечь данные для подключения
-const dbConfig = parse(connectionString)
 
 export default buildConfig({
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:9003',
@@ -33,12 +29,11 @@ export default buildConfig({
   },
   db: postgresAdapter({
     pool: {
-      // Используем разобранные данные для корректного подключения
-      host: dbConfig.host || '',
-      port: dbConfig.port ? parseInt(dbConfig.port) : 5432,
-      user: dbConfig.user,
-      password: dbConfig.password,
-      database: dbConfig.database || '',
+      host: process.env.PG_HOST,
+      port: process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432,
+      user: process.env.PG_USER,
+      password: process.env.PG_PASSWORD,
+      database: process.env.PG_DATABASE,
     },
   }),
 })
