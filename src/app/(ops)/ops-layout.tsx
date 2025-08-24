@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import type { User as UserType } from '@/lib/shared/iam.contracts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { logout } from '@/lib/server/auth/user.actions';
+import { cn } from '@/lib/utils';
 
 export function OpsLayout({ children, user }: { children: React.ReactNode, user: UserType }) {
   const pathname = usePathname();
@@ -79,7 +80,10 @@ export function OpsLayout({ children, user }: { children: React.ReactNode, user:
             </form>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <main className={cn(
+        "flex flex-col flex-1",
+        "md:ml-[var(--sidebar-width)] group-data-[collapsible=icon]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]"
+       )}>
         <header className="flex h-14 items-center justify-between border-b bg-card p-4">
             <div className="md:hidden">
                  <SidebarTrigger />
@@ -92,10 +96,10 @@ export function OpsLayout({ children, user }: { children: React.ReactNode, user:
                 </Button>
             </div>
         </header>
-        <main className="flex flex-1 flex-col bg-muted/40">
+        <div className="flex-1 overflow-auto bg-muted/40">
             {children}
-        </main>
-      </SidebarInset>
+        </div>
+       </main>
     </div>
     </SidebarProvider>
   );
