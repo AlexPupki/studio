@@ -1,5 +1,9 @@
 'use server';
 
+// This file is being kept for now in case stateful sessions are needed for other purposes,
+// but it is no longer used for the primary authentication flow in middleware.
+// For example, it could be used to track active user sessions for an admin dashboard.
+
 import type { Session } from '@/lib/shared/iam.contracts';
 import { redisClient } from '../redis';
 

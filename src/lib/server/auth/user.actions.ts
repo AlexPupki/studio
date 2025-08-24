@@ -5,25 +5,28 @@ import { z } from 'zod';
 import {
   createIamService,
   createRateLimiter,
-  createSessionService,
   createSmsProvider,
 } from './auth.service.server';
 import { normalizePhone } from '@/lib/shared/phone.utils';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getFeature, getEnv } from '../config.server';
-import { validateSession } from './session.actions';
+import { SignJWT, jwtVerify } from 'jose';
+import type { User } from '@/lib/shared/iam.contracts';
 
-// --- Сервисы ---
 const iamService = createIamService();
-const sessionService = createSessionService();
 const smsProvider = createSmsProvider();
 const rateLimiter = createRateLimiter();
 
-// --- Схемы ---
 const PhoneSchema = z.string().transform((val) => normalizePhone(val) || '');
 
-// --- Экшены ---
+async function getJwtSecretKey() {
+    const secret = getEnv('JWT_SECRET');
+    if (!secret) {
+        throw new Error('JWT_SECRET is not set in environment variables');
+    }
+    return new TextEncoder().encode(secret);
+}
 
 export async function requestLoginCode(phone: string) {
   const validatedPhone = PhoneSchema.safeParse(phone);
@@ -75,45 +78,60 @@ export async function verifyLoginCode(
 
   const result = await iamService.verifyLoginCode(input);
 
-  if (!result.success) {
+  if (!result.success || !result.user) {
     return {
       success: false,
       error: 'Неверный код или срок действия кода истек.',
     };
   }
 
-  const session = await sessionService.create(result.user.id);
-  const cookie = sessionService.serialize(session);
+  // Create JWT
+  const secretKey = await getJwtSecretKey();
+  const token = await new SignJWT({ sub: result.user.id, roles: result.user.roles })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${getEnv('SESSION_TTL_DAYS')}d`)
+    .sign(secretKey);
 
-  cookies().set(cookie.name, cookie.value, cookie.options);
+  cookies().set(getEnv('COOKIE_NAME'), token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    expires: new Date(Date.now() + getEnv('SESSION_TTL_DAYS') * 24 * 60 * 60 * 1000),
+    sameSite: 'lax',
+  });
 
   return { success: true, redirectTo: input.redirectTo || '/account' };
 }
 
-/**
- * Gets the full user object from the database.
- * This should be called from Server Components or API routes, not middleware.
- */
-export async function getCurrentUser() {
+async function getSession() {
+    const cookieName = getEnv('COOKIE_NAME');
+    const token = cookies().get(cookieName)?.value;
+    if (!token) return null;
+
+    try {
+        const secretKey = await getJwtSecretKey();
+        const { payload } = await jwtVerify(token, secretKey, { algorithms: ['HS256'] });
+        return payload as { sub: string, roles: User['roles'] };
+    } catch (e) {
+        return null;
+    }
+}
+
+
+export async function getCurrentUser(): Promise<User | null> {
   if (!getFeature('FEATURE_ACCOUNT')) {
     return null;
   }
-  const session = await validateSession();
-  if (!session) return null;
+  const session = await getSession();
+  if (!session?.sub) return null;
 
-  const user = await iamService.findUserById(session.userId);
-
+  const user = await iamService.findUserById(session.sub);
   return user;
 }
 
 export async function logout() {
   const cookieName = getEnv('COOKIE_NAME');
-  const cookieValue = cookies().get(cookieName)?.value;
-  if (cookieValue) {
-    await sessionService.revoke(cookieValue);
-  }
-  // Clear the cookie by setting it with an expired date
   cookies().set(cookieName, '', { expires: new Date(0), path: '/' });
-
   redirect('/login');
 }
