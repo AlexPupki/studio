@@ -10,7 +10,7 @@ if (!process.env.PG_HOST || !process.env.PG_USER || !process.env.PG_DATABASE) {
 export default defineConfig({
   dialect: "postgresql",
   schema: "./src/lib/server/db/schema.ts",
-  out: "./src/lib/server/db/migrations",
+  out: "./drizzle",
   dbCredentials: {
     host: process.env.PG_HOST!,
     port: process.env.PG_PORT ? parseInt(process.env.PG_PORT) : 5432,
