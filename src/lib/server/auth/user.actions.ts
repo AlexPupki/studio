@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -104,31 +103,24 @@ export async function verifyLoginCode(
   return { success: true, redirectTo: input.redirectTo || '/account' };
 }
 
-async function getSession() {
-    const cookieStore = cookies();
-    const cookieName = getEnv('COOKIE_NAME');
-    const token = cookieStore.get(cookieName)?.value;
-    if (!token) return null;
-
-    try {
-        const secretKey = await getJwtSecretKey();
-        const { payload } = await jwtVerify(token, secretKey, { algorithms: ['HS256'] });
-        return payload as { sub: string, roles: User['roles'] };
-    } catch (e) {
-        return null;
-    }
-}
-
-
 export async function getCurrentUser(): Promise<User | null> {
   if (!getFeature('FEATURE_ACCOUNT')) {
     return null;
   }
-  const session = await getSession();
-  if (!session?.sub) return null;
+  const cookieStore = cookies();
+  const cookieName = getEnv('COOKIE_NAME');
+  const token = cookieStore.get(cookieName)?.value;
+  if (!token) return null;
 
-  const user = await iamService.findUserById(session.sub);
-  return user;
+  try {
+      const secretKey = await getJwtSecretKey();
+      const { payload } = await jwtVerify(token, secretKey, { algorithms: ['HS256'] });
+      if (!payload.sub) return null;
+      const user = await iamService.findUserById(payload.sub);
+      return user;
+  } catch (e) {
+      return null;
+  }
 }
 
 export async function logout() {
