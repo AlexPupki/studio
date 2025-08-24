@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +24,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
@@ -49,6 +50,7 @@ const FormSchema = z.object({
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -72,10 +74,16 @@ export function LoginForm() {
         });
         return;
       }
-
+      
+      const nextUrl = searchParams.get('next');
       const params = new URLSearchParams({
         phone: result.phoneE164,
       });
+
+      if (nextUrl) {
+        params.set('next', nextUrl);
+      }
+
       router.push(`/verify?${params.toString()}`);
     } catch (error) {
       toast({

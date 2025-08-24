@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(cookieName)?.value;
   const { payload, error } = await verifyAuth(token);
   const isAuthenticated = !error;
+  const roles = (payload?.roles as UserRole[]) || [];
   
   // Add a header with the current path to be used in layouts
   const requestHeaders = new Headers(request.headers);
@@ -47,8 +48,7 @@ export async function middleware(request: NextRequest) {
         new URL('/ops/login?next=' + request.nextUrl.pathname, request.url)
       );
     }
-    const roles = (payload?.roles as UserRole[]) || [];
-    const canAccessOps = roles.some(role => role.startsWith('ops.'));
+    const canAccessOps = roles.some(role => role.startsWith('ops.') || role === 'admin');
      if (!canAccessOps) {
         return NextResponse.redirect(new URL('/account?error=forbidden', request.url));
     }
@@ -73,6 +73,13 @@ export async function middleware(request: NextRequest) {
     if ((pathname.startsWith('/login') || pathname.startsWith('/verify')) && isAuthenticated) {
        // If user is authenticated and tries to access login, redirect them away
       const nextUrl = request.nextUrl.searchParams.get('next');
+
+      // Special case: if an ops user lands on customer login, redirect to ops dashboard
+      const isOpsUser = roles.some(role => role.startsWith('ops.') || role === 'admin');
+      if (isOpsUser) {
+        return NextResponse.redirect(new URL('/ops/dashboard', request.url));
+      }
+
       // Avoid redirecting to ops pages from customer login
       if (nextUrl && !nextUrl.startsWith('/ops')) {
          return NextResponse.redirect(new URL(nextUrl, request.url));
