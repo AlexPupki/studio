@@ -1,12 +1,12 @@
 'use server';
 
 import { NextRequest } from 'next/server';
-import { getEnv } from '../config';
+import { getEnv } from '../config.server';
 import { ApiError } from './errors';
 
 /**
  * Asserts that the request's origin is trusted.
- * It checks the `Origin` or `Referer` header against the `NEXT_PUBLIC_APP_URL`.
+ * It checks the `Origin` or `Referer` header against the `APP_BASE_URL`.
  * This is a crucial CSRF protection measure for API routes.
  *
  * @param req The NextRequest object.
@@ -18,9 +18,9 @@ export function assertTrustedOrigin(req: NextRequest): void {
     return;
   }
 
-  const appUrl = getEnv('NEXT_PUBLIC_APP_URL');
+  const appUrl = getEnv('APP_BASE_URL');
   if (!appUrl) {
-    throw new ApiError('configuration_error', 'APP_URL is not configured.', 500);
+    throw new ApiError('configuration_error', 'APP_BASE_URL is not configured.', 500);
   }
 
   const trustedOrigin = new URL(appUrl).origin;

@@ -1,6 +1,3 @@
-
-'use server';
-
 import { withIdempotency } from "@/lib/server/redis/idempotency";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { ApiError, withApiError } from "@/lib/server/http/errors";

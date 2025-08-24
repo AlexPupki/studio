@@ -1,6 +1,3 @@
-
-'use server';
-
 import { withIdempotency } from "@/lib/server/redis/idempotency";
 import { assertTrustedOrigin } from "@/lib/server/http/origin";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -22,7 +19,7 @@ const ConfirmRequestSchema = z.object({
 
 async function handler(req: NextRequest, traceId: string) {
   return withIdempotency(req, traceId, async () => {
-    await rateLimit('booking_confirm', 5, '60s', getIp());
+    await rateLimit('booking_confirm', 5, '60s', getIp(req));
     assertTrustedOrigin(req);
     const body = await req.json();
     const parsed = ConfirmRequestSchema.safeParse(body);

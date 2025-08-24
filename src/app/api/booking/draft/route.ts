@@ -1,6 +1,3 @@
-
-'use server';
-
 import { db } from "@/lib/server/db";
 import { bookings } from "@/lib/server/db/schema";
 import { ApiError, withApiError } from "@/lib/server/http/errors";
@@ -25,7 +22,7 @@ const DraftRequestSchema = z.object({
 });
 
 async function handler(req: NextRequest, traceId: string) {
-  await rateLimit('booking_draft', 5, '60s', getIp());
+  await rateLimit('booking_draft', 5, '60s', getIp(req));
   assertTrustedOrigin(req);
 
   const body = await req.json();
